@@ -85,6 +85,25 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = Load(f);
             }
+
+            if (bmp == null)
+            {
+                if (Path.GetExtension(fileName).ToLower().Contains("tga"))
+                    bmp = TgaReader.Load(fileName);
+            }
+
+            if (bmp == null)
+            {
+                if (Path.GetExtension(fileName).ToLower().Contains("cut"))
+                    bmp = CutReader.Load(fileName);
+            }
+
+            if (bmp == null)
+            {
+                if (Path.GetExtension(fileName).ToLower().Contains("sgi") || Path.GetExtension(fileName).ToLower().Contains("rgb") || Path.GetExtension(fileName).ToLower().Contains("bw"))
+                    bmp = SgiReader.Load(fileName);
+            }
+
             return bmp;
         }
 
@@ -100,8 +119,8 @@ namespace DmitryBrant.ImageFormats
             Bitmap bmp = null;
 
             //read the first few bytes of the file to determine what format it is...
-            byte[] header = new byte[16];
-            stream.Read(header, 0, 16);
+            byte[] header = new byte[256];
+            stream.Read(header, 0, header.Length);
             stream.Seek(0, SeekOrigin.Begin);
 
             if ((header[0] == 0xA) && (header[1] == 0x5) && (header[2] == 0x1) && (header[4] == 0) && (header[5] == 0))
@@ -116,12 +135,11 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = RasReader.Load(stream);
             }
-
-            if (bmp == null)
+            else if ((header[0x80] == 'D') && (header[0x81] == 'I') && (header[0x82] == 'C') && (header[0x83] == 'M'))
             {
-                try { bmp = TgaReader.Load(stream); }
-                catch (Exception e) { System.Diagnostics.Debug.WriteLine(e.Message); }
+                bmp = DicomReader.Load(stream);
             }
+
             return bmp;
         }
 

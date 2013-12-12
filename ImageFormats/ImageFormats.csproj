@@ -35,11 +35,14 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CutReader.cs" />
+    <Compile Include="DicomReader.cs" />
     <Compile Include="Picture.cs" />
     <Compile Include="PcxReader.cs" />
     <Compile Include="PnmReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RasReader.cs" />
+    <Compile Include="SgiReader.cs" />
     <Compile Include="TgaReader.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
