@@ -1,7 +1,7 @@
-﻿using System;
+﻿using ImageViewer.Properties;
+using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Windows.Forms;
 
 /*
@@ -94,20 +94,18 @@ namespace ImageViewer
             var openDlg = new OpenFileDialog();
             openDlg.DefaultExt = ".*";
             openDlg.CheckFileExists = true;
-            openDlg.Title = "Open file...";
+            openDlg.Title = Resources.openDlgTitle;
             openDlg.Filter = "All Files (*.*)|*.*";
             openDlg.FilterIndex = 1;
             if (openDlg.ShowDialog() == DialogResult.Cancel) return;
             OpenFile(openDlg.FileName);
         }
-
-
+        
         private void OpenFile(string fileName)
         {
             try
             {
                 Bitmap bmp = null;
-
                 bmp = DmitryBrant.ImageFormats.Picture.Load(fileName);
                 
                 if (bmp == null)
@@ -118,7 +116,7 @@ namespace ImageViewer
                 }
 
                 if (bmp == null)
-                    throw new ApplicationException("Could not load the specified file.");
+                    throw new ApplicationException(Resources.errorLoadFailed);
 
                 pictureBox1.Image = bmp;
                 pictureBox1.Size = bmp.Size;
