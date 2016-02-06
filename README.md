@@ -1,7 +1,15 @@
 imageformats
 ============
 
-.NET modules for decoding obscure graphics formats, such as Targa, Sun raster, PCX, SGI, and DICOM.
+.NET modules for decoding obscure graphics formats:
+
+- .PPM, .PGM, .PBM (Netpbm images)
+- .TGA (Targa)
+- .PCX (ZSoft Paintbrush)
+- .SGI, .RGB, .BW (SGI images)
+- .RAS (Sun raster images)
+- .CUT (Dr. Halo)
+- .DICOM (experimental support)
 
 Copyright 2013-2016 Dmitry Brant
 
