@@ -65,6 +65,12 @@ namespace DmitryBrant.ImageFormats
                     bmp = SgiReader.Load(fileName);
             }
 
+            if (bmp == null)
+            {
+                if (Path.GetExtension(fileName).ToLower().Contains("xpm"))
+                    bmp = XpmReader.Load(fileName);
+            }
+
             return bmp;
         }
 
