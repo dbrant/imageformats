@@ -68,8 +68,8 @@ namespace DmitryBrant.ImageFormats
                 throw new ApplicationException("This is not a valid PCX file.");
 
             tempByte = (byte)stream.ReadByte();
-            if (tempByte != 5)
-                throw new ApplicationException("Only Version-5 PCX files are supported.");
+            if (tempByte < 3 || tempByte > 5)
+                throw new ApplicationException("Only Version 3, 4, and 5 PCX files are supported.");
 
             tempByte = (byte)stream.ReadByte();
             if (tempByte != 1)
