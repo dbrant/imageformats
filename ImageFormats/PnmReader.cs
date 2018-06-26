@@ -11,7 +11,7 @@ At the very least, it decodes all Netpbm images that
 I've found in the wild.  If you find one that it fails to decode,
 let me know!
 
-Copyright 2013-2016 Dmitry Brant
+Copyright 2013-2018 Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,24 +72,47 @@ namespace DmitryBrant.ImageFormats
             //if it's monochrome, it won't have a maxval, so set it to 1
             if ((pnmType == '1') || (pnmType == '4')) bmpMaxVal = 1;
 
-            while (stream.Position < stream.Length)
+            int nextByte = stream.ReadByte();
+            stream.Seek(-1, SeekOrigin.Current);
+            if (nextByte == 0x20)
             {
-                line = ReadLine(stream);
-                if (line.Length == 0) continue;
-                if (line[0] == '#') continue;
-                lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
-                if(lineArray.Length == 0) continue;
-
-                for (int i = 0; i < lineArray.Length; i++)
+                // It's likely space-separated values on the same line, followed by binary data.
+                byte[] bytes = new byte[32];
+                stream.Read(bytes, 0, bytes.Length);
+                stream.Seek(-bytes.Length, SeekOrigin.Current);
+                string str = Encoding.ASCII.GetString(bytes);
+                string[] strArray = str.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (strArray.Length >= 3)
                 {
-                    if (bmpWidth == -1) { bmpWidth = Convert.ToInt32(lineArray[i]); }
-                    else if (bmpHeight == -1) { bmpHeight = Convert.ToInt32(lineArray[i]); }
-                    else if (bmpMaxVal == -1) { bmpMaxVal = Convert.ToInt32(lineArray[i]); }
-                }
+                    bmpWidth = Convert.ToInt32(strArray[0]);
+                    bmpHeight = Convert.ToInt32(strArray[1]);
+                    bmpMaxVal = Convert.ToInt32(strArray[2]);
 
-                //check if we have all necessary attributes
-                if ((bmpWidth != -1) && (bmpHeight != -1) && (bmpMaxVal != -1))
-                    break;
+                    string searchStr = " " + bmpMaxVal.ToString() + " ";
+                    stream.Seek(str.LastIndexOf(searchStr) + searchStr.Length, SeekOrigin.Current);
+                }
+            }
+            else
+            {
+                while (stream.Position < stream.Length)
+                {
+                    line = ReadLine(stream);
+                    if (line.Length == 0) continue;
+                    if (line[0] == '#') continue;
+                    lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+                    if (lineArray.Length == 0) continue;
+
+                    for (int i = 0; i < lineArray.Length; i++)
+                    {
+                        if (bmpWidth == -1) { bmpWidth = Convert.ToInt32(lineArray[i]); }
+                        else if (bmpHeight == -1) { bmpHeight = Convert.ToInt32(lineArray[i]); }
+                        else if (bmpMaxVal == -1) { bmpMaxVal = Convert.ToInt32(lineArray[i]); }
+                    }
+
+                    //check if we have all necessary attributes
+                    if ((bmpWidth != -1) && (bmpHeight != -1) && (bmpMaxVal != -1))
+                        break;
+                }
             }
 
             //check for nonsensical dimensions

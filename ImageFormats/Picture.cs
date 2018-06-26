@@ -94,7 +94,7 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = PcxReader.Load(stream);
             }
-            else if ((header[0] == 'P') && ((header[1] >= '1') && (header[1] <= '6')) && ((header[2] == 0xA) || (header[2] == 0xD)))
+            else if ((header[0] == 'P') && ((header[1] >= '1') && (header[1] <= '6')) && ((header[2] == 0xA) || (header[2] == 0xD) || (header[2] == 0x20)))
             {
                 bmp = PnmReader.Load(stream);
             }
