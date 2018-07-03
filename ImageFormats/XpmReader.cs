@@ -170,27 +170,6 @@ namespace DmitryBrant.ImageFormats
             return bmp;
         }
         
-        private static string ReadLine(Stream stream)
-        {
-            string str = "";
-            byte[] lineBytes = new byte[1024];
-            int startPos = (int)stream.Position;
-            stream.Read(lineBytes, 0, 1024);
-            int strLen = 0;
-            while (strLen < 1024)
-            {
-                if ((lineBytes[strLen] == '\r') || (lineBytes[strLen] == '\n')) { strLen++; break; }
-                strLen++;
-            }
-            if (strLen > 1)
-            {
-                str = Encoding.ASCII.GetString(lineBytes, 0, strLen - 1);
-            }
-
-            stream.Position = startPos + strLen;
-            return str;
-        }
-
         private static string ReadUntil(Stream stream, char stopChar)
         {
             string str = "";
