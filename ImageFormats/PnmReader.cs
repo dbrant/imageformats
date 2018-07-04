@@ -35,9 +35,8 @@ namespace DmitryBrant.ImageFormats
     /// </summary>
     public static class PnmReader
     {
-
-        private const int MAX_LINE_LENGTH = 32768;
-        private static char[] whitespace = { ' ', '\t', '\r', '\n' };
+        
+        private const int MAX_INTS_PER_LINE = 10000;
 
         /// <summary>
         /// Load a portable picture map (either PPM, PGM, or PBM) into a Bitmap object.
@@ -59,32 +58,31 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which the picture will be loaded.</param>
         /// <returns>Bitmap that contains the picture.</returns>
-        public static Bitmap Load(Stream stream)
+        public static Bitmap Load(Stream inStream)
         {
-            byte[] lineBytes = new byte[MAX_LINE_LENGTH];
+            int bytePtr = 0;
+            byte[] bytes = new byte[inStream.Length];
+            inStream.Read(bytes, 0, bytes.Length);
+            
+            int[] lineInts = new int[MAX_INTS_PER_LINE];
+            int lineIntsRead;
             Bitmap bmp = null;
-            string line;
-            string[] lineArray;
             char pnmType;
             int bmpWidth = -1, bmpHeight = -1, bmpMaxVal = -1;
 
             //check if the format is correct...
-            if ((char)stream.ReadByte() != 'P') throw new ApplicationException("Incorrect file format.");
-            pnmType = (char)stream.ReadByte();
+            if ((char)bytes[bytePtr++] != 'P') throw new ApplicationException("Incorrect file format.");
+            pnmType = (char)bytes[bytePtr++];
             if ((pnmType < '1') || (pnmType > '6')) throw new ApplicationException("Unrecognized bitmap type.");
 
             //if it's monochrome, it won't have a maxval, so set it to 1
             if ((pnmType == '1') || (pnmType == '4')) bmpMaxVal = 1;
 
-            int nextByte = stream.ReadByte();
-            stream.Seek(-1, SeekOrigin.Current);
+            int nextByte = bytes[bytePtr];
             if (nextByte == 0x20 && pnmType >= '4')
             {
                 // It's likely space-separated values on the same line, followed by binary data.
-                byte[] bytes = new byte[32];
-                stream.Read(bytes, 0, bytes.Length);
-                stream.Seek(-bytes.Length, SeekOrigin.Current);
-                string str = Encoding.ASCII.GetString(bytes);
+                string str = Encoding.ASCII.GetString(bytes, bytePtr, 32);
                 string[] strArray = str.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                 if (strArray.Length >= 3)
                 {
@@ -93,24 +91,20 @@ namespace DmitryBrant.ImageFormats
                     bmpMaxVal = Convert.ToInt32(strArray[2]);
 
                     string searchStr = " " + bmpMaxVal.ToString() + " ";
-                    stream.Seek(str.LastIndexOf(searchStr) + searchStr.Length, SeekOrigin.Current);
+                    bytePtr += str.LastIndexOf(searchStr) + searchStr.Length;
                 }
             }
             else
             {
-                while (stream.Position < stream.Length)
+                while (bytePtr < bytes.Length)
                 {
-                    line = ReadLine(stream, lineBytes);
-                    if (line.Length == 0) continue;
-                    if (line[0] == '#') continue;
-                    lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
-                    if (lineArray.Length == 0) continue;
-
-                    for (int i = 0; i < lineArray.Length; i++)
+                    ReadLineOfInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
+                    if (lineIntsRead == 0) continue;
+                    for (int i = 0; i < lineIntsRead; i++)
                     {
-                        if (bmpWidth == -1) { bmpWidth = Convert.ToInt32(lineArray[i]); }
-                        else if (bmpHeight == -1) { bmpHeight = Convert.ToInt32(lineArray[i]); }
-                        else if (bmpMaxVal == -1) { bmpMaxVal = Convert.ToInt32(lineArray[i]); }
+                        if (bmpWidth == -1) { bmpWidth = lineInts[i]; }
+                        else if (bmpHeight == -1) { bmpHeight = lineInts[i]; }
+                        else if (bmpMaxVal == -1) { bmpMaxVal = lineInts[i]; }
                     }
 
                     //check if we have all necessary attributes
@@ -133,17 +127,13 @@ namespace DmitryBrant.ImageFormats
                 {
                     int elementCount = 0;
                     byte elementVal;
-                    while (stream.Position < stream.Length)
+                    while (bytePtr < bytes.Length)
                     {
-                        line = ReadLine(stream, lineBytes);
-                        if (line.Length == 0) continue;
-                        if (line[0] == '#') continue;
-
-                        lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
-                        for (int i = 0; i < lineArray.Length; i++)
+                        ReadLineOfInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
+                        for (int i = 0; i < lineIntsRead; i++)
                         {
                             if (elementCount >= maxElementCount) break;
-                            elementVal = (byte)(lineArray[i] == "0" ? 255 : 0);
+                            elementVal = (byte)(lineInts[i] == 0 ? 255 : 0);
                             bmpData[elementCount] = elementVal;
                             bmpData[elementCount + 1] = elementVal;
                             bmpData[elementCount + 2] = elementVal;
@@ -155,19 +145,13 @@ namespace DmitryBrant.ImageFormats
                 else if (pnmType == '2') //grayscale bitmap (ascii)
                 {
                     int elementCount = 0;
-                    int elementVal;
-                    while (stream.Position < stream.Length)
+                    while (bytePtr < bytes.Length)
                     {
-                        line = ReadLine(stream, lineBytes);
-                        if (line.Length == 0) continue;
-                        if (line[0] == '#') continue;
-
-                        lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
-                        for (int i = 0; i < lineArray.Length; i++)
+                        ReadLineOfInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
+                        for (int i = 0; i < lineIntsRead; i++)
                         {
                             if (elementCount >= maxElementCount) break;
-                            elementVal = Convert.ToInt32(lineArray[i]);
-                            bmpData[elementCount] = (byte)((elementVal * 255) / bmpMaxVal);
+                            bmpData[elementCount] = (byte)((lineInts[i] * 255) / bmpMaxVal);
                             bmpData[elementCount + 1] = bmpData[elementCount];
                             bmpData[elementCount + 2] = bmpData[elementCount];
                             elementCount += 4;
@@ -178,19 +162,13 @@ namespace DmitryBrant.ImageFormats
                 else if (pnmType == '3') //color bitmap (ascii)
                 {
                     int elementCount = 0, elementMod = 2;
-                    int elementVal;
-                    while (stream.Position < stream.Length)
+                    while (bytePtr < bytes.Length)
                     {
-                        line = ReadLine(stream, lineBytes);
-                        if (line.Length == 0) continue;
-                        if (line[0] == '#') continue;
-
-                        lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
-                        for (int i = 0; i < lineArray.Length; i++)
+                        ReadLineOfInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
+                        for (int i = 0; i < lineIntsRead; i++)
                         {
                             if (elementCount >= maxElementCount) break;
-                            elementVal = Convert.ToInt32(lineArray[i]);
-                            bmpData[elementCount + elementMod] = (byte)((elementVal * 255) / bmpMaxVal);
+                            bmpData[elementCount + elementMod] = (byte)((lineInts[i] * 255) / bmpMaxVal);
                             elementMod--;
                             if (elementMod < 0) { elementCount += 4; elementMod = 2; }
                         }
@@ -203,7 +181,7 @@ namespace DmitryBrant.ImageFormats
                     int elementCount = 0;
                     while (true)
                     {
-                        pixel = (byte)stream.ReadByte();
+                        pixel = bytes[bytePtr++];
                         for (int p = 7; p >= 0; p--)
                         {
                             pixelVal = (byte)((pixel & (1 << p)) == 0 ? 255 : 0);
@@ -224,7 +202,7 @@ namespace DmitryBrant.ImageFormats
                     {
                         for (int i = 0; i < numPixels; i++)
                         {
-                            pixel = (byte)stream.ReadByte();
+                            pixel = bytes[bytePtr++];
                             bmpData[elementCount++] = pixel;
                             bmpData[elementCount++] = pixel;
                             bmpData[elementCount++] = pixel;
@@ -235,8 +213,8 @@ namespace DmitryBrant.ImageFormats
                     {
                         for (int i = 0; i < numPixels; i++)
                         {
-                            pixel = (byte)stream.ReadByte();
-                            stream.ReadByte();
+                            pixel = bytes[bytePtr++];
+                            bytePtr++;
                             bmpData[elementCount++] = pixel;
                             bmpData[elementCount++] = pixel;
                             bmpData[elementCount++] = pixel;
@@ -246,16 +224,15 @@ namespace DmitryBrant.ImageFormats
                 }
                 else if (pnmType == '6') //color bitmap (binary)
                 {
-                    byte[] pixel = new byte[16];
                     int elementCount = 0;
                     if (bmpMaxVal < 256)
                     {
                         for (int i = 0; i < numPixels; i++)
                         {
-                            stream.Read(pixel, 0, 3);
-                            bmpData[elementCount++] = pixel[2];
-                            bmpData[elementCount++] = pixel[1];
-                            bmpData[elementCount++] = pixel[0];
+                            bmpData[elementCount++] = bytes[bytePtr + 2];
+                            bmpData[elementCount++] = bytes[bytePtr + 1];
+                            bmpData[elementCount++] = bytes[bytePtr];
+                            bytePtr += 3;
                             elementCount++;
                         }
                     }
@@ -263,10 +240,10 @@ namespace DmitryBrant.ImageFormats
                     {
                         for (int i = 0; i < numPixels; i++)
                         {
-                            stream.Read(pixel, 0, 6);
-                            bmpData[elementCount++] = pixel[4];
-                            bmpData[elementCount++] = pixel[2];
-                            bmpData[elementCount++] = pixel[0];
+                            bmpData[elementCount++] = bytes[bytePtr + 4];
+                            bmpData[elementCount++] = bytes[bytePtr + 2];
+                            bmpData[elementCount++] = bytes[bytePtr];
+                            bytePtr += 6;
                             elementCount++;
                         }
                     }
@@ -286,32 +263,51 @@ namespace DmitryBrant.ImageFormats
             return bmp;
         }
         
-        /// <summary>
-        /// Since we're dealing with a Stream that may have ASCII or binary data (or a combination
-        /// of both!), we can't just use StreamReader to read lines from it.  Therefore we'll need
-        /// to use our own function to read a line from a plain Stream.
-        /// </summary>
-        /// <param name="stream">Stream from which to read a line.</param>
-        /// <param name="lineBuffer">Array of bytes (preferably a reusable one) for buffering data
-        /// read from the stream.</param>
-        /// <returns>Line that was read (may be an empty string).</returns>
-        private static string ReadLine(Stream stream, byte[] lineBuffer)
+        private static void ReadLineOfInts(byte[] bytes, ref int bytePtr, int[] intArray, out int numIntsRead)
         {
-            string str = "";
-            int startPos = (int)stream.Position;
-            int bytesRead = stream.Read(lineBuffer, 0, lineBuffer.Length);
-            int strLen = 0;
+            int currentInt = 0;
+            int intIndex = 0;
+            bool isComment = false;
+            bool intStarted = false;
+            byte b;
             do
             {
-                if ((lineBuffer[strLen] == '\r') || (lineBuffer[strLen] == '\n')) { strLen++; break; }
-            } while (++strLen < bytesRead);
-            if (strLen > 1)
-            {
-                str = Encoding.ASCII.GetString(lineBuffer, 0, strLen - 1);
-            }
-            stream.Position = startPos + strLen;
-            return str;
-        }
+                b = bytes[bytePtr++];
+                
+                if (b < '0' || b > '9')
+                {
+                    // not a digit
+                    if (intStarted)
+                    {
+                        // close out the current int
+                        intArray[intIndex++] = currentInt;
+                        intStarted = false;
+                    }
+                }
+                else if (!isComment)
+                {
+                    // digit
+                    if (intStarted)
+                    {
+                        // continue the current int
+                        currentInt *= 10;
+                        currentInt += b - '0';
+                    }
+                    else
+                    {
+                        // start a new int
+                        intStarted = true;
+                        currentInt = b - '0';
+                    }
+                }
 
+                if ((b == '\r') || (b == '\n')) { break; }
+                else if (b == '#') { isComment = true; }
+                
+            } while (bytePtr < bytes.Length);
+            
+            numIntsRead = intIndex;
+        }
+        
     }
 }
