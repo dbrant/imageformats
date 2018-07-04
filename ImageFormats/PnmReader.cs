@@ -36,6 +36,9 @@ namespace DmitryBrant.ImageFormats
     public static class PnmReader
     {
 
+        private const int MAX_LINE_LENGTH = 32768;
+        private static char[] whitespace = { ' ', '\t', '\r', '\n' };
+
         /// <summary>
         /// Load a portable picture map (either PPM, PGM, or PBM) into a Bitmap object.
         /// </summary>
@@ -58,6 +61,7 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the picture.</returns>
         public static Bitmap Load(Stream stream)
         {
+            byte[] lineBytes = new byte[MAX_LINE_LENGTH];
             Bitmap bmp = null;
             string line;
             string[] lineArray;
@@ -74,7 +78,7 @@ namespace DmitryBrant.ImageFormats
 
             int nextByte = stream.ReadByte();
             stream.Seek(-1, SeekOrigin.Current);
-            if (nextByte == 0x20)
+            if (nextByte == 0x20 && pnmType >= '4')
             {
                 // It's likely space-separated values on the same line, followed by binary data.
                 byte[] bytes = new byte[32];
@@ -96,7 +100,7 @@ namespace DmitryBrant.ImageFormats
             {
                 while (stream.Position < stream.Length)
                 {
-                    line = ReadLine(stream);
+                    line = ReadLine(stream, lineBytes);
                     if (line.Length == 0) continue;
                     if (line[0] == '#') continue;
                     lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
@@ -131,7 +135,7 @@ namespace DmitryBrant.ImageFormats
                     byte elementVal;
                     while (stream.Position < stream.Length)
                     {
-                        line = ReadLine(stream);
+                        line = ReadLine(stream, lineBytes);
                         if (line.Length == 0) continue;
                         if (line[0] == '#') continue;
 
@@ -154,7 +158,7 @@ namespace DmitryBrant.ImageFormats
                     int elementVal;
                     while (stream.Position < stream.Length)
                     {
-                        line = ReadLine(stream);
+                        line = ReadLine(stream, lineBytes);
                         if (line.Length == 0) continue;
                         if (line[0] == '#') continue;
 
@@ -177,7 +181,7 @@ namespace DmitryBrant.ImageFormats
                     int elementVal;
                     while (stream.Position < stream.Length)
                     {
-                        line = ReadLine(stream);
+                        line = ReadLine(stream, lineBytes);
                         if (line.Length == 0) continue;
                         if (line[0] == '#') continue;
 
@@ -281,25 +285,30 @@ namespace DmitryBrant.ImageFormats
             bmp.UnlockBits(bmpBits);
             return bmp;
         }
-
-
-        private static char[] whitespace = { ' ', '\t', '\r', '\n' };
-
-        private static string ReadLine(Stream stream)
+        
+        /// <summary>
+        /// Since we're dealing with a Stream that may have ASCII or binary data (or a combination
+        /// of both!), we can't just use StreamReader to read lines from it.  Therefore we'll need
+        /// to use our own function to read a line from a plain Stream.
+        /// </summary>
+        /// <param name="stream">Stream from which to read a line.</param>
+        /// <param name="lineBuffer">Array of bytes (preferably a reusable one) for buffering data
+        /// read from the stream.</param>
+        /// <returns>Line that was read (may be an empty string).</returns>
+        private static string ReadLine(Stream stream, byte[] lineBuffer)
         {
             string str = "";
-            byte[] lineBytes = new byte[1024];
             int startPos = (int)stream.Position;
-            stream.Read(lineBytes, 0, 1024);
+            int bytesRead = stream.Read(lineBuffer, 0, lineBuffer.Length);
             int strLen = 0;
-            while (strLen < 1024)
+            do
             {
-                if ((lineBytes[strLen] == '\r') || (lineBytes[strLen] == '\n')) { strLen++; break; }
-                strLen++;
-            }
+                if ((lineBuffer[strLen] == '\r') || (lineBuffer[strLen] == '\n')) { strLen++; break; }
+            } while (++strLen < bytesRead);
             if (strLen > 1)
-                str = Encoding.ASCII.GetString(lineBytes, 0, strLen - 1);
-
+            {
+                str = Encoding.ASCII.GetString(lineBuffer, 0, strLen - 1);
+            }
             stream.Position = startPos + strLen;
             return str;
         }
