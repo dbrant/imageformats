@@ -10,7 +10,7 @@ depths, etc).  At the very least, it decodes all PCX images that
 I've found in the wild.  If you find one that it fails to decode,
 let me know!
 
-Copyright 2013-2016 Dmitry Brant
+Copyright 2013-2019 Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,12 +95,21 @@ namespace DmitryBrant.ImageFormats
 
             byte[] colorPalette = new byte[48];
             stream.Read(colorPalette, 0, 48);
-
             stream.ReadByte();
 
             int numPlanes = stream.ReadByte();
             int bytesPerLine = LittleEndian(reader.ReadUInt16());
             if (bytesPerLine == 0) bytesPerLine = xmax - xmin + 1;
+            
+            /*
+             * HACK: Set the following parameter to true if you want to interpret the bit plane data as literal color states,
+             * instead of indices into the palette. This was done by certain older versions of PaintBrush in EGA mode.
+             * If the colors in your decoded picture look weird, try tweaking this setting.
+             */
+            bool bitPlanesLiteral = false;
+
+            // TODO: use this for something? It doesn't seem to be consistent or meaningful between different versions.
+            LittleEndian(reader.ReadUInt16());
 
             if (imgBpp == 8 && numPlanes == 1)
             {
@@ -157,9 +166,28 @@ namespace DmitryBrant.ImageFormats
                         for (x = 0; x < imgWidth; x++)
                         {
                             i = realscanline[x];
-                            bmpData[4 * (y * imgWidth + x)] = colorPalette[i * 3 + 2];
-                            bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[i * 3 + 1];
-                            bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[i * 3];
+
+                            if (numPlanes == 1)
+                            {
+                                bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? 0xFF : 0);
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 1) != 0 ? 0xFF : 0);
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 1) != 0 ? 0xFF : 0);
+                            }
+                            else
+                            {
+                                if (bitPlanesLiteral)
+                                {
+                                    bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? 0xFF : 0);
+                                    bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? 0xFF : 0);
+                                    bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? 0xFF : 0);
+                                }
+                                else
+                                {
+                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[i * 3 + 2];
+                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[i * 3 + 1];
+                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[i * 3];
+                                }
+                            }
                         }
                     }
                 }

@@ -9,7 +9,7 @@ This is a class library that contains image decoders for old and/or
 obscure image formats (.TGA, .PCX, .PPM, RAS, etc.). Refer to the
 individual source code files for each image type for more information.
 
-Copyright 2013-2016 Dmitry Brant
+Copyright 2013-2019 Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,7 +90,7 @@ namespace DmitryBrant.ImageFormats
             stream.Read(header, 0, header.Length);
             stream.Seek(0, SeekOrigin.Begin);
 
-            if ((header[0] == 0xA) && ((header[1] >= 0x3) && (header[1] <= 0x5)) && (header[2] == 0x1) && (header[4] == 0) && (header[5] == 0))
+            if ((header[0] == 0xA) && (header[1] >= 0x3) && (header[1] <= 0x5) && (header[2] == 0x1) && ((header[3] == 0x1) || (header[3] == 0x2) || (header[3] == 0x4) || (header[3] == 0x8)))
             {
                 bmp = PcxReader.Load(stream);
             }
