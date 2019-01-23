@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("ImageViewer")]
-[assembly: AssemblyCopyright("Copyright © Dmitry Brant 2013")]
+[assembly: AssemblyCopyright("Copyright © Dmitry Brant, 2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
