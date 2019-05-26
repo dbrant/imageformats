@@ -8,10 +8,11 @@ imageformats
 - .PCX (ZSoft Paintbrush)
 - .SGI, .RGB, .BW (SGI images)
 - .RAS (Sun raster images)
+- .MAC (MacPaint)
 - .CUT (Dr. Halo)
 - .DICOM (experimental support)
 
-Copyright 2013-2016 Dmitry Brant
+Copyright 2013-2019 Dmitry Brant
 
 http://dmitrybrant.com
 
