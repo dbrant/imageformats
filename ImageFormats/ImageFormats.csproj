@@ -7,7 +7,7 @@
     <ProjectGuid>{873B8031-6C75-47B4-83D0-8D1A05E8D938}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ImageFormats</RootNamespace>
+    <RootNamespace>DmitryBrant.ImageFormats</RootNamespace>
     <AssemblyName>ImageFormats</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -45,6 +45,7 @@
     <Compile Include="RasReader.cs" />
     <Compile Include="SgiReader.cs" />
     <Compile Include="TgaReader.cs" />
+    <Compile Include="Util.cs" />
     <Compile Include="XpmReader.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

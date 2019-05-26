@@ -67,13 +67,13 @@ namespace DmitryBrant.ImageFormats
             byte idFieldLength = (byte)stream.ReadByte();
             byte colorMap = (byte)stream.ReadByte();
             byte imageType = (byte)stream.ReadByte();
-            UInt16 colorMapOffset = LittleEndian(reader.ReadUInt16());
-            UInt16 colorsUsed = LittleEndian(reader.ReadUInt16());
+            UInt16 colorMapOffset = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 colorsUsed = Util.LittleEndian(reader.ReadUInt16());
             byte bitsPerColorMap = (byte)stream.ReadByte();
-            UInt16 xCoord = LittleEndian(reader.ReadUInt16());
-            UInt16 yCoord = LittleEndian(reader.ReadUInt16());
-            UInt16 imgWidth = LittleEndian(reader.ReadUInt16());
-            UInt16 imgHeight = LittleEndian(reader.ReadUInt16());
+            UInt16 xCoord = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 yCoord = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 imgWidth = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 imgHeight = Util.LittleEndian(reader.ReadUInt16());
             byte bitsPerPixel = (byte)stream.ReadByte();
             byte imgFlags = (byte)stream.ReadByte();
 
@@ -418,33 +418,5 @@ namespace DmitryBrant.ImageFormats
 
             return theBitmap;
         }
-
-
-        private static UInt16 LittleEndian(UInt16 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 LittleEndian(UInt32 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 conv_endian(UInt16 val)
-        {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
-            return temp;
-        }
-        private static UInt32 conv_endian(UInt32 val)
-        {
-            UInt32 temp = (val & 0x000000FF) << 24;
-            temp |= (val & 0x0000FF00) << 8;
-            temp |= (val & 0x00FF0000) >> 8;
-            temp |= (val & 0xFF000000) >> 24;
-            return (temp);
-        }
-
     }
 }

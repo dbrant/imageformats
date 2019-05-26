@@ -58,7 +58,7 @@ namespace DmitryBrant.ImageFormats
             // Not much other useful stuff in the header...
 
             stream.Read(headerBytes, 0, 4);
-            uint startMagic = BigEndian(BitConverter.ToUInt32(headerBytes, 0));
+            uint startMagic = Util.BigEndian(BitConverter.ToUInt32(headerBytes, 0));
             if (startMagic != 0x2)
             {
                 // I have actually seen MacPaint files that do not have this magic value...
@@ -114,33 +114,6 @@ namespace DmitryBrant.ImageFormats
             System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, imgWidth * 4 * imgHeight);
             theBitmap.UnlockBits(bmpBits);
             return theBitmap;
-        }
-
-
-        private static UInt16 BigEndian(UInt16 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 BigEndian(UInt32 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 conv_endian(UInt16 val)
-        {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
-            return temp;
-        }
-        private static UInt32 conv_endian(UInt32 val)
-        {
-            UInt32 temp = (val & 0x000000FF) << 24;
-            temp |= (val & 0x0000FF00) << 8;
-            temp |= (val & 0x00FF0000) >> 8;
-            temp |= (val & 0xFF000000) >> 24;
-            return (temp);
         }
 
         /// <summary>

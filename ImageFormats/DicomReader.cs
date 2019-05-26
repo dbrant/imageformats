@@ -76,7 +76,7 @@ namespace DmitryBrant.ImageFormats
             bool isJPEG = false, isRLE = false;
 
             //read the meta-group, and determine stuff from it
-            int metaGroupLen = (int)LittleEndian(BitConverter.ToUInt32(tempBytes, 0xC));
+            int metaGroupLen = (int)Util.LittleEndian(BitConverter.ToUInt32(tempBytes, 0xC));
             if(metaGroupLen > 10000)
                 throw new ApplicationException("Meta group is a bit too long. May not be a valid DICOM file.");
 
@@ -374,10 +374,10 @@ namespace DmitryBrant.ImageFormats
         private static UInt16 getGroupNumber(BinaryReader reader, bool bigEndian)
         {
             UInt16 ret = 0;
-            ret = LittleEndian(reader.ReadUInt16());
+            ret = Util.LittleEndian(reader.ReadUInt16());
             if (ret != 0x2)
                 if (bigEndian)
-                    ret = BigEndian((UInt16)ret);
+                    ret = Util.BigEndian((UInt16)ret);
             return ret;
         }
 
@@ -386,12 +386,12 @@ namespace DmitryBrant.ImageFormats
             UInt16 ret = 0;
             if (groupNumber == 0x2)
             {
-                ret = LittleEndian(reader.ReadUInt16());
+                ret = Util.LittleEndian(reader.ReadUInt16());
             }
             else
             {
-                if (bigEndian) ret = BigEndian(reader.ReadUInt16());
-                else ret = LittleEndian(reader.ReadUInt16());
+                if (bigEndian) ret = Util.BigEndian(reader.ReadUInt16());
+                else ret = Util.LittleEndian(reader.ReadUInt16());
             }
             return ret;
         }
@@ -401,12 +401,12 @@ namespace DmitryBrant.ImageFormats
             UInt32 ret = 0;
             if (groupNumber == 0x2)
             {
-                ret = LittleEndian(reader.ReadUInt32());
+                ret = Util.LittleEndian(reader.ReadUInt32());
             }
             else
             {
-                if (bigEndian) ret = BigEndian(reader.ReadUInt32());
-                else ret = LittleEndian(reader.ReadUInt32());
+                if (bigEndian) ret = Util.BigEndian(reader.ReadUInt32());
+                else ret = Util.LittleEndian(reader.ReadUInt32());
             }
             return ret;
         }
@@ -416,12 +416,12 @@ namespace DmitryBrant.ImageFormats
             UInt32 ret = 0;
             if (groupNumber == 0x2)
             {
-                ret = LittleEndian(reader.ReadUInt32());
+                ret = Util.LittleEndian(reader.ReadUInt32());
             }
             else
             {
-                if (bigEndian) ret = BigEndian(reader.ReadUInt32());
-                else ret = LittleEndian(reader.ReadUInt32());
+                if (bigEndian) ret = Util.BigEndian(reader.ReadUInt32());
+                else ret = Util.LittleEndian(reader.ReadUInt32());
             }
             return BitConverter.ToSingle(BitConverter.GetBytes(ret), 0);
         }
@@ -552,46 +552,5 @@ namespace DmitryBrant.ImageFormats
                 }
             }
         }
-
-
-
-
-        private static UInt16 LittleEndian(UInt16 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 LittleEndian(UInt32 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 BigEndian(UInt16 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 BigEndian(UInt32 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 conv_endian(UInt16 val)
-        {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
-            return temp;
-        }
-        private static UInt32 conv_endian(UInt32 val)
-        {
-            UInt32 temp = (val & 0x000000FF) << 24;
-            temp |= (val & 0x0000FF00) << 8;
-            temp |= (val & 0x00FF0000) >> 8;
-            temp |= (val & 0xFF000000) >> 24;
-            return (temp);
-        }
-
     }
 }

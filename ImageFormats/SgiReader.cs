@@ -56,13 +56,13 @@ namespace DmitryBrant.ImageFormats
         {
             BinaryReader reader = new BinaryReader(stream);
 
-            UInt16 magic = BigEndian(reader.ReadUInt16());
+            UInt16 magic = Util.BigEndian(reader.ReadUInt16());
             if (magic != 0x1DA)
                 throw new ApplicationException("Not a valid SGI file.");
 
             int compressionType = stream.ReadByte();
             int bytesPerComponent = stream.ReadByte();
-            UInt16 dimension = BigEndian(reader.ReadUInt16());
+            UInt16 dimension = Util.BigEndian(reader.ReadUInt16());
 
             if(compressionType > 1)
                 throw new ApplicationException("Unsupported compression type.");
@@ -71,11 +71,11 @@ namespace DmitryBrant.ImageFormats
             if (dimension != 1 && dimension != 2 && dimension != 3)
                 throw new ApplicationException("Unsupported dimension.");
 
-            int imgWidth = BigEndian(reader.ReadUInt16());
-            int imgHeight = BigEndian(reader.ReadUInt16());
-            int zSize = BigEndian(reader.ReadUInt16());
-            UInt32 pixMin = BigEndian(reader.ReadUInt32());
-            UInt32 pixMax = BigEndian(reader.ReadUInt32());
+            int imgWidth = Util.BigEndian(reader.ReadUInt16());
+            int imgHeight = Util.BigEndian(reader.ReadUInt16());
+            int zSize = Util.BigEndian(reader.ReadUInt16());
+            UInt32 pixMin = Util.BigEndian(reader.ReadUInt32());
+            UInt32 pixMax = Util.BigEndian(reader.ReadUInt32());
 
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
                 throw new ApplicationException("This SGI file appears to have invalid dimensions.");
@@ -84,7 +84,7 @@ namespace DmitryBrant.ImageFormats
 
             string imgName = System.Text.Encoding.ASCII.GetString(reader.ReadBytes(80)).Replace("\0", "").Trim();
 
-            UInt32 colorMapFormat = BigEndian(reader.ReadUInt32());
+            UInt32 colorMapFormat = Util.BigEndian(reader.ReadUInt32());
 
             stream.Seek(404, SeekOrigin.Current);
 
@@ -94,7 +94,7 @@ namespace DmitryBrant.ImageFormats
                 int offsetTableLen = imgHeight * zSize;
                 offsets = new UInt32[offsetTableLen];
                 for(int i=0; i<offsetTableLen; i++)
-                    offsets[i] = BigEndian(reader.ReadUInt32());
+                    offsets[i] = Util.BigEndian(reader.ReadUInt32());
                 stream.Seek(offsets[0], SeekOrigin.Begin);
             }
 
@@ -250,33 +250,5 @@ namespace DmitryBrant.ImageFormats
             theBitmap.UnlockBits(bmpBits);
             return theBitmap;
         }
-
-
-        private static UInt16 BigEndian(UInt16 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 BigEndian(UInt32 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 conv_endian(UInt16 val)
-        {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
-            return temp;
-        }
-        private static UInt32 conv_endian(UInt32 val)
-        {
-            UInt32 temp = (val & 0x000000FF) << 24;
-            temp |= (val & 0x0000FF00) << 8;
-            temp |= (val & 0x00FF0000) >> 8;
-            temp |= (val & 0xFF000000) >> 24;
-            return (temp);
-        }
-
     }
 }

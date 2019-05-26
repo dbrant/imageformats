@@ -56,9 +56,9 @@ namespace DmitryBrant.ImageFormats
         {
             BinaryReader reader = new BinaryReader(stream);
 
-            int imgWidth = LittleEndian(reader.ReadUInt16());
-            int imgHeight = LittleEndian(reader.ReadUInt16());
-            LittleEndian(reader.ReadUInt16()); //reserved word
+            int imgWidth = Util.LittleEndian(reader.ReadUInt16());
+            int imgHeight = Util.LittleEndian(reader.ReadUInt16());
+            Util.LittleEndian(reader.ReadUInt16()); //reserved word
 
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
                 throw new ApplicationException("This CUT file appears to have invalid dimensions.");
@@ -131,33 +131,5 @@ namespace DmitryBrant.ImageFormats
             theBitmap.UnlockBits(bmpBits);
             return theBitmap;
         }
-
-
-        private static UInt16 LittleEndian(UInt16 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 LittleEndian(UInt32 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 conv_endian(UInt16 val)
-        {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
-            return temp;
-        }
-        private static UInt32 conv_endian(UInt32 val)
-        {
-            UInt32 temp = (val & 0x000000FF) << 24;
-            temp |= (val & 0x0000FF00) << 8;
-            temp |= (val & 0x00FF0000) >> 8;
-            temp |= (val & 0xFF000000) >> 24;
-            return (temp);
-        }
-
     }
 }

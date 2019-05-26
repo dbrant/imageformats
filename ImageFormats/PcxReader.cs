@@ -79,10 +79,10 @@ namespace DmitryBrant.ImageFormats
             if (imgBpp != 8 && imgBpp != 4 && imgBpp != 2 && imgBpp != 1)
                 throw new ApplicationException("Only 8, 4, 2, and 1-bit PCX samples are supported.");
 
-            UInt16 xmin = LittleEndian(reader.ReadUInt16());
-            UInt16 ymin = LittleEndian(reader.ReadUInt16());
-            UInt16 xmax = LittleEndian(reader.ReadUInt16());
-            UInt16 ymax = LittleEndian(reader.ReadUInt16());
+            UInt16 xmin = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 ymin = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 xmax = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 ymax = Util.LittleEndian(reader.ReadUInt16());
 
             imgWidth = xmax - xmin + 1;
             imgHeight = ymax - ymin + 1;
@@ -90,15 +90,15 @@ namespace DmitryBrant.ImageFormats
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
                 throw new ApplicationException("This PCX file appears to have invalid dimensions.");
 
-            LittleEndian(reader.ReadUInt16()); //hdpi
-            LittleEndian(reader.ReadUInt16()); //vdpi
+            Util.LittleEndian(reader.ReadUInt16()); //hdpi
+            Util.LittleEndian(reader.ReadUInt16()); //vdpi
 
             byte[] colorPalette = new byte[48];
             stream.Read(colorPalette, 0, 48);
             stream.ReadByte();
 
             int numPlanes = stream.ReadByte();
-            int bytesPerLine = LittleEndian(reader.ReadUInt16());
+            int bytesPerLine = Util.LittleEndian(reader.ReadUInt16());
             if (bytesPerLine == 0) bytesPerLine = xmax - xmin + 1;
             
             /*
@@ -109,7 +109,7 @@ namespace DmitryBrant.ImageFormats
             bool bitPlanesLiteral = false;
 
             // TODO: use this for something? It doesn't seem to be consistent or meaningful between different versions.
-            LittleEndian(reader.ReadUInt16());
+            Util.LittleEndian(reader.ReadUInt16());
 
             if (imgBpp == 8 && numPlanes == 1)
             {
@@ -130,7 +130,7 @@ namespace DmitryBrant.ImageFormats
 
             byte[] bmpData = new byte[(imgWidth + 1) * 4 * imgHeight];
             stream.Seek(128, SeekOrigin.Begin);
-            int x = 0, y = 0, i, j;
+            int x = 0, y = 0, i;
 
             RleReader rleReader = new RleReader(stream);
 
@@ -344,33 +344,5 @@ namespace DmitryBrant.ImageFormats
                 return currentByte;
             }
         }
-
-
-        private static UInt16 LittleEndian(UInt16 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 LittleEndian(UInt32 val)
-        {
-            if (BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 conv_endian(UInt16 val)
-        {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
-            return temp;
-        }
-        private static UInt32 conv_endian(UInt32 val)
-        {
-            UInt32 temp = (val & 0x000000FF) << 24;
-            temp |= (val & 0x0000FF00) << 8;
-            temp |= (val & 0x00FF0000) >> 8;
-            temp |= (val & 0xFF000000) >> 24;
-            return (temp);
-        }
-
     }
 }

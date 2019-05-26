@@ -57,17 +57,17 @@ namespace DmitryBrant.ImageFormats
         public static Bitmap Load(Stream stream)
         {
             BinaryReader reader = new BinaryReader(stream);
-            UInt32 tempDword = BigEndian(reader.ReadUInt32());
+            UInt32 tempDword = Util.BigEndian(reader.ReadUInt32());
             if (tempDword != 0x59a66a95)
                 throw new ApplicationException("This is not a valid RAS file.");
 
-            int imgWidth = (int)BigEndian(reader.ReadUInt32());
-            int imgHeight = (int)BigEndian(reader.ReadUInt32());
-            int imgBpp = (int)BigEndian(reader.ReadUInt32());
-            UInt32 dataLength = BigEndian(reader.ReadUInt32());
-            UInt32 rasType = BigEndian(reader.ReadUInt32());
-            UInt32 mapType = BigEndian(reader.ReadUInt32());
-            UInt32 mapLength = BigEndian(reader.ReadUInt32());
+            int imgWidth = (int)Util.BigEndian(reader.ReadUInt32());
+            int imgHeight = (int)Util.BigEndian(reader.ReadUInt32());
+            int imgBpp = (int)Util.BigEndian(reader.ReadUInt32());
+            UInt32 dataLength = Util.BigEndian(reader.ReadUInt32());
+            UInt32 rasType = Util.BigEndian(reader.ReadUInt32());
+            UInt32 mapType = Util.BigEndian(reader.ReadUInt32());
+            UInt32 mapLength = Util.BigEndian(reader.ReadUInt32());
 
             RleReader rleReader = new RleReader(stream, rasType == 2);
 
@@ -286,33 +286,5 @@ namespace DmitryBrant.ImageFormats
                 return currentByte;
             }
         }
-
-
-        private static UInt16 BigEndian(UInt16 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-        private static UInt32 BigEndian(UInt32 val)
-        {
-            if (!BitConverter.IsLittleEndian) return val;
-            return conv_endian(val);
-        }
-
-        private static UInt16 conv_endian(UInt16 val)
-        {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
-            return temp;
-        }
-        private static UInt32 conv_endian(UInt32 val)
-        {
-            UInt32 temp = (val & 0x000000FF) << 24;
-            temp |= (val & 0x0000FF00) << 8;
-            temp |= (val & 0x00FF0000) >> 8;
-            temp |= (val & 0xFF000000) >> 24;
-            return (temp);
-        }
-
     }
 }
