@@ -52,6 +52,12 @@ namespace DmitryBrant.ImageFormats
                 throw new ApplicationException("This is not a valid MacPaint file.");
             }
 
+            string fileType = Encoding.ASCII.GetString(headerBytes, 0x41, 4);
+            if (fileType != "PNTG")
+            {
+                throw new ApplicationException("This is not a valid MacPaint file.");
+            }
+
             int fileNameLen = headerBytes[1];
             string fileName = Encoding.ASCII.GetString(headerBytes, 2, fileNameLen);
 
