@@ -37,6 +37,7 @@
   <ItemGroup>
     <Compile Include="CutReader.cs" />
     <Compile Include="DicomReader.cs" />
+    <Compile Include="MacPaintReader.cs" />
     <Compile Include="Picture.cs" />
     <Compile Include="PcxReader.cs" />
     <Compile Include="PnmReader.cs" />
