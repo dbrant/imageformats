@@ -10,6 +10,7 @@ imageformats
 - .RAS (Sun raster images)
 - .MAC (MacPaint)
 - .CUT (Dr. Halo)
+- .XPM (X Window PixMap)
 - .DICOM (experimental support)
 
 Copyright 2013-2019 Dmitry Brant
