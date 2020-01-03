@@ -13,7 +13,7 @@ imageformats
 - .XPM (X Window PixMap)
 - .DICOM (experimental support)
 
-Copyright 2013-2019 Dmitry Brant
+Copyright 2013-2020 Dmitry Brant
 
 http://dmitrybrant.com
 
