@@ -110,6 +110,10 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = MacPaintReader.Load(stream);
             }
+            else if ((header[0] == 'F') && (header[1] == 'O') && (header[2] == 'R') && (header[3] == 'M') && (header[8] == 'I') && (header[9] == 'L') && (header[10] == 'B') && (header[11] == 'M'))
+            {
+                bmp = IlbmReader.Load(stream);
+            }
 
             return bmp;
         }
