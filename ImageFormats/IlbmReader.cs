@@ -129,9 +129,14 @@ namespace DmitryBrant.ImageFormats
                 }
             }
 
-            if (imgWidth == -1 || imgHeight == -1)
+            if (imgWidth == -1 || imgHeight == -1 || (numPlanes > 16 && numPlanes != 24 && numPlanes != 32))
             {
                 throw new ApplicationException("Invalid format of ILBM file.");
+            }
+
+            if (maskType == 1)
+            {
+                Console.WriteLine("yes.");
             }
 
             RleReader rleReader = new RleReader(stream);
@@ -139,8 +144,6 @@ namespace DmitryBrant.ImageFormats
 
             try
             {
-
-
                 int bytesPerBitPlane = ((imgWidth + 15) / 16) * 2;
                 int bytesPerLine = bytesPerBitPlane * numPlanes;
 
@@ -148,7 +151,7 @@ namespace DmitryBrant.ImageFormats
 
                 byte[] scanLine = new byte[bytesPerLine];
 
-                byte[] imageLine = new byte[imgWidth];
+                uint[] imageLine = new uint[imgWidth];
 
                 for (int y = 0; y < imgHeight; y++)
                 {
@@ -177,22 +180,34 @@ namespace DmitryBrant.ImageFormats
 
                     // apply mask plane?
 
-
-                    for (int x = 0; x < imgWidth; x++)
+                    if (numPlanes == 24)
                     {
-                        if (maskType == 2 && imageLine[x] == transparentColor)
+                        for (int x = 0; x < imgWidth; x++)
                         {
-                            bmpData[4 * (y * imgWidth + x)] = 0;
-                            bmpData[4 * (y * imgWidth + x) + 1] = 0;
-                            bmpData[4 * (y * imgWidth + x) + 2] = 0;
-                            bmpData[4 * (y * imgWidth + x) + 3] = 0;
-                        }
-                        else
-                        {
-                            bmpData[4 * (y * imgWidth + x)] = (byte)palette[imageLine[x] * 3];
-                            bmpData[4 * (y * imgWidth + x) + 1] = (byte)palette[imageLine[x] * 3 + 1];
-                            bmpData[4 * (y * imgWidth + x) + 2] = (byte)palette[imageLine[x] * 3 + 2];
+                            bmpData[4 * (y * imgWidth + x)] = (byte)(scanLine[x] & 0xFF);
+                            bmpData[4 * (y * imgWidth + x) + 1] = (byte)((scanLine[x] & 0xFF00) >> 8);
+                            bmpData[4 * (y * imgWidth + x) + 2] = (byte)((scanLine[x] & 0xFF0000) >> 16);
                             bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                        }
+                    }
+                    else
+                    {
+                        for (int x = 0; x < imgWidth; x++)
+                        {
+                            if (maskType == 2 && imageLine[x] == transparentColor)
+                            {
+                                bmpData[4 * (y * imgWidth + x)] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 1] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 2] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                            }
+                            else
+                            {
+                                bmpData[4 * (y * imgWidth + x)] = (byte)palette[imageLine[x] * 3];
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)palette[imageLine[x] * 3 + 1];
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)palette[imageLine[x] * 3 + 2];
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                            }
                         }
                     }
                 }
