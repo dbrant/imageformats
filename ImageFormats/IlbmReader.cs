@@ -66,6 +66,7 @@ namespace DmitryBrant.ImageFormats
             bool haveCAMG = false;
             bool haveCTBL = false;
             bool haveSHAM = false;
+            bool modeShamLaced = false;
             bool modePbm = false;
             bool modeHalfBrite = false;
             bool modeHAM = false;
@@ -155,7 +156,7 @@ namespace DmitryBrant.ImageFormats
                 else if (chunkName == "CTBL")
                 {
                     haveCTBL = true;
-                    int bytesPerRow = (int)chunkSize / imgHeight;
+                    int bytesPerRow = 32;
                     int rowsInChunk = (int)chunkSize / bytesPerRow;
                     int colorsPerRow = Math.Min(bytesPerRow / 2, palette.Length / 3);
                     for (int row = 0; row < rowsInChunk; row++)
@@ -179,8 +180,12 @@ namespace DmitryBrant.ImageFormats
                 else if (chunkName == "SHAM")
                 {
                     haveSHAM = true;
-                    int bytesPerRow = (int)(chunkSize - 2) / imgHeight;
+                    int bytesPerRow = 32;
                     int rowsInChunk = (int)(chunkSize - 2) / bytesPerRow;
+                    if (rowsInChunk == imgHeight / 2)
+                    {
+                        modeShamLaced = true;
+                    }
                     int colorsPerRow = Math.Min(bytesPerRow / 2, palette.Length / 3);
                     for (int row = 0; row < rowsInChunk; row++)
                     {
@@ -292,7 +297,18 @@ namespace DmitryBrant.ImageFormats
                         int valMask = (1 << hamShift) - 1;
                         int valShift = 8 - hamShift;
                         int hamVal;
-                        byte[] pal = haveSHAM && rowPalette.Count > y ? rowPalette[y] : palette;
+                        byte[] pal = palette;
+                        if (haveSHAM)
+                        {
+                            if (modeShamLaced && rowPalette.Count > y / 2)
+                            {
+                                pal = rowPalette[y / 2];
+                            }
+                            else if (rowPalette.Count > y)
+                            {
+                                pal = rowPalette[y];
+                            }
+                        }
 
                         for (int x = 0; x < imgWidth; x++)
                         {
