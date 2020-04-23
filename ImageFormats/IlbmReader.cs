@@ -58,9 +58,12 @@ namespace DmitryBrant.ImageFormats
             int imgHeight = -1;
 
             int numPlanes = -1;
+            int totalColors = 0;
             int maskType = 0;
             int compressionType = 0;
             int transparentColor = 0;
+            bool modeHalfBrite = false;
+            bool modeHAM = false;
 
             Bitmap theBitmap = null;
             BinaryReader reader = new BinaryReader(stream);
@@ -120,12 +123,22 @@ namespace DmitryBrant.ImageFormats
                 }
                 else if (chunkName == "CMAP")
                 {
-                    int numColors = 1 << numPlanes;
+                    totalColors = 1 << numPlanes;
                     int numColorsInChunk = (int)chunkSize / 3;
+                    if (numColorsInChunk < totalColors)
+                    {
+                        totalColors = numColorsInChunk;
+                    }
                     for (int c = 0; c < palette.Length; c++)
                     {
                         palette[c] = tempBytes[c];
                     }
+                }
+                else if (chunkName == "CAMG")
+                {
+                    uint mode = Util.BigEndian(BitConverter.ToUInt32(tempBytes, 0));
+                    if ((mode & 0x80) != 0) { modeHalfBrite = true; }
+                    if ((mode & 0x800) != 0) { modeHAM = true; }
                 }
             }
 
@@ -190,6 +203,54 @@ namespace DmitryBrant.ImageFormats
                             bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
                         }
                     }
+                    else if (modeHAM)
+                    {
+                        int hamShift = numPlanes - 2;
+                        int valMask = (1 << hamShift) - 1;
+                        int hamVal;
+                        int index;
+                        int prevR = 0, prevG = 0, prevB = 0;
+
+                        for (int x = 0; x < imgWidth; x++)
+                        {
+                            index = (int)imageLine[x];
+                            hamVal = (index >> hamShift) & 0x3;
+                            index &= valMask;
+
+                            if (maskType == 2 && index == transparentColor)
+                            {
+                                bmpData[4 * (y * imgWidth + x)] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 1] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 2] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                            }
+                            else
+                            {
+                                if (hamVal == 0)
+                                {
+                                    prevR = palette[index * 3];
+                                    prevG = palette[index * 3 + 1];
+                                    prevB = palette[index * 3 + 2];
+                                }
+                                else if (hamVal == 2)
+                                {
+                                    prevR = (index << 4) | index;
+                                }
+                                else if (hamVal == 1)
+                                {
+                                    prevB = (index << 4) | index;
+                                }
+                                else if (hamVal == 3)
+                                {
+                                    prevG = (index << 4) | index;
+                                }
+                                bmpData[4 * (y * imgWidth + x)] = (byte)prevB;
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)prevG;
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)prevR;
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                            }
+                        }
+                    }
                     else
                     {
                         for (int x = 0; x < imgWidth; x++)
@@ -203,9 +264,9 @@ namespace DmitryBrant.ImageFormats
                             }
                             else
                             {
-                                bmpData[4 * (y * imgWidth + x)] = (byte)palette[imageLine[x] * 3];
+                                bmpData[4 * (y * imgWidth + x)] = (byte)palette[imageLine[x] * 3 + 2];
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)palette[imageLine[x] * 3 + 1];
-                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)palette[imageLine[x] * 3 + 2];
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)palette[imageLine[x] * 3];
                                 bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
                             }
                         }
