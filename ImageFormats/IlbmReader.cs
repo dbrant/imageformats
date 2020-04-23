@@ -65,6 +65,7 @@ namespace DmitryBrant.ImageFormats
             int transparentColor = 0;
             bool haveCAMG = false;
             bool haveCTBL = false;
+            bool haveSHAM = false;
             bool modePbm = false;
             bool modeHalfBrite = false;
             bool modeHAM = false;
@@ -89,7 +90,7 @@ namespace DmitryBrant.ImageFormats
             }
 
             byte[] palette = null;
-            var ctblPalette = new List<byte[]>();
+            var rowPalette = new List<byte[]>();
 
             while (stream.Position < stream.Length)
             {
@@ -160,8 +161,32 @@ namespace DmitryBrant.ImageFormats
                     for (int row = 0; row < rowsInChunk; row++)
                     {
                         var rowPal = new byte[palette.Length];
-                        ctblPalette.Add(rowPal);
+                        rowPalette.Add(rowPal);
                         int ptr = row * bytesPerRow;
+                        int r, g, b;
+                        for (int c = 0; c < colorsPerRow; c++)
+                        {
+                            r = (tempBytes[ptr++] & 0xF);
+                            g = tempBytes[ptr++];
+                            b = g & 0xF;
+                            g = (g >> 4) & 0xF;
+                            rowPal[c * 3] = (byte)((r << 4) | r);
+                            rowPal[c * 3 + 1] = (byte)((g << 4) | g);
+                            rowPal[c * 3 + 2] = (byte)((b << 4) | b);
+                        }
+                    }
+                }
+                else if (chunkName == "SHAM")
+                {
+                    haveSHAM = true;
+                    int bytesPerRow = (int)(chunkSize - 2) / imgHeight;
+                    int rowsInChunk = (int)(chunkSize - 2) / bytesPerRow;
+                    int colorsPerRow = Math.Min(bytesPerRow / 2, palette.Length / 3);
+                    for (int row = 0; row < rowsInChunk; row++)
+                    {
+                        var rowPal = new byte[palette.Length];
+                        rowPalette.Add(rowPal);
+                        int ptr = 2 + (row * bytesPerRow);
                         int r, g, b;
                         for (int c = 0; c < colorsPerRow; c++)
                         {
@@ -267,7 +292,8 @@ namespace DmitryBrant.ImageFormats
                         int valMask = (1 << hamShift) - 1;
                         int valShift = 8 - hamShift;
                         int hamVal;
-                        
+                        byte[] pal = haveSHAM && rowPalette.Count > y ? rowPalette[y] : palette;
+
                         for (int x = 0; x < imgWidth; x++)
                         {
                             index = (int)imageLine[x];
@@ -285,9 +311,9 @@ namespace DmitryBrant.ImageFormats
                             {
                                 if (hamVal == 0)
                                 {
-                                    prevR = palette[index * 3];
-                                    prevG = palette[index * 3 + 1];
-                                    prevB = palette[index * 3 + 2];
+                                    prevR = pal[index * 3];
+                                    prevG = pal[index * 3 + 1];
+                                    prevB = pal[index * 3 + 2];
                                 }
                                 else if (hamVal == 2)
                                 {
@@ -317,7 +343,7 @@ namespace DmitryBrant.ImageFormats
                     }
                     else
                     {
-                        byte[] pal = haveCTBL && ctblPalette.Count > y ? ctblPalette[y] : palette;
+                        byte[] pal = haveCTBL && rowPalette.Count > y ? rowPalette[y] : palette;
 
                         for (int x = 0; x < imgWidth; x++)
                         {
