@@ -62,6 +62,7 @@ namespace DmitryBrant.ImageFormats
             int maskType = 0;
             int compressionType = 0;
             int transparentColor = 0;
+            bool modePbm = false;
             bool modeHalfBrite = false;
             bool modeHAM = false;
 
@@ -77,7 +78,12 @@ namespace DmitryBrant.ImageFormats
             uint chunkSize = Util.BigEndian(reader.ReadUInt32());
 
             stream.Read(tempBytes, 0, 4);
-            if (Encoding.ASCII.GetString(tempBytes, 0, 4) != "ILBM") { throw new ApplicationException("This is not a valid ILBM file."); }
+            string fileType = Encoding.ASCII.GetString(tempBytes, 0, 4);
+            if (fileType != "ILBM" && fileType != "PBM ") { throw new ApplicationException("This is not a valid ILBM file."); }
+            if (fileType == "PBM ")
+            {
+                modePbm = true;
+            }
 
             byte[] palette = null;
 
@@ -178,12 +184,29 @@ namespace DmitryBrant.ImageFormats
                         rleReader.ReadNextBytes(scanLine, bytesPerLine);
                     }
 
-                    for (int b = 0; b < numPlanes; b++)
+                    if (modePbm)
                     {
-                        var bp = new BitPlaneReader(scanLine, bytesPerBitPlane * b);
-                        for (int x = 0; x < imgWidth; x++)
+                        if (numPlanes == 8)
                         {
-                            imageLine[x] |= (uint)bp.NextBit() << b;
+                            for (int x = 0; x < imgWidth; x++)
+                            {
+                                imageLine[x] = scanLine[x];
+                            }
+                        }
+                        else
+                        {
+                            throw new ApplicationException("ILBM PBM image with unsupported bit width: " + numPlanes);
+                        }
+                    }
+                    else
+                    {
+                        for (int b = 0; b < numPlanes; b++)
+                        {
+                            var bp = new BitPlaneReader(scanLine, bytesPerBitPlane * b);
+                            for (int x = 0; x < imgWidth; x++)
+                            {
+                                imageLine[x] |= (uint)bp.NextBit() << b;
+                            }
                         }
                     }
 
