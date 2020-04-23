@@ -224,7 +224,7 @@ namespace DmitryBrant.ImageFormats
                 modeHAM = true;
             }
 
-            RleReader rleReader = new RleReader(stream);
+            ByteRun1Decoder decompressor = new ByteRun1Decoder(stream);
             byte[] bmpData = new byte[(imgWidth + 1) * 4 * imgHeight];
 
             try
@@ -247,7 +247,7 @@ namespace DmitryBrant.ImageFormats
                     }
                     else if (compressionType == 1)
                     {
-                        rleReader.ReadNextBytes(scanLine, bytesPerLine);
+                        decompressor.ReadNextBytes(scanLine, bytesPerLine);
                     }
 
                     if (modePbm)
@@ -437,11 +437,11 @@ namespace DmitryBrant.ImageFormats
         /// <summary>
         /// Helper class for reading a run-length encoded stream in an ILBM file.
         /// </summary>
-        private class RleReader
+        private class ByteRun1Decoder
         {
             private Stream stream;
 
-            public RleReader(Stream stream)
+            public ByteRun1Decoder(Stream stream)
             {
                 this.stream = stream;
             }
