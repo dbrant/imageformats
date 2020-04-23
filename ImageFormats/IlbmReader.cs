@@ -62,6 +62,7 @@ namespace DmitryBrant.ImageFormats
             int maskType = 0;
             int compressionType = 0;
             int transparentColor = 0;
+            bool haveCAMG = false;
             bool modePbm = false;
             bool modeHalfBrite = false;
             bool modeHAM = false;
@@ -145,6 +146,7 @@ namespace DmitryBrant.ImageFormats
                     uint mode = Util.BigEndian(BitConverter.ToUInt32(tempBytes, 0));
                     if ((mode & 0x80) != 0) { modeHalfBrite = true; }
                     if ((mode & 0x800) != 0) { modeHAM = true; }
+                    haveCAMG = true;
                 }
             }
 
@@ -156,6 +158,13 @@ namespace DmitryBrant.ImageFormats
             if (maskType == 1)
             {
                 throw new ApplicationException("ILBM images with mask plane not yet implemented.");
+            }
+
+            if (!haveCAMG && totalColors == 16 && numPlanes == 6)
+            {
+                // Even though we didn't get a CAMG chunk, this is extremely likely to be
+                // a HAM image, so default to it.
+                modeHAM = true;
             }
 
             RleReader rleReader = new RleReader(stream);
