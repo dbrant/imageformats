@@ -6,6 +6,7 @@ imageformats
 - .PPM, .PGM, .PBM (Netpbm images)
 - .TGA (Targa)
 - .PCX (ZSoft Paintbrush)
+- .IFF (Amiga ILBM images)
 - .SGI, .RGB, .BW (SGI images)
 - .RAS (Sun raster images)
 - .MAC (MacPaint)
