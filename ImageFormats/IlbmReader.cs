@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Collections.Generic;
 
 /*
 
@@ -63,6 +64,7 @@ namespace DmitryBrant.ImageFormats
             int compressionType = 0;
             int transparentColor = 0;
             bool haveCAMG = false;
+            bool haveCTBL = false;
             bool modePbm = false;
             bool modeHalfBrite = false;
             bool modeHAM = false;
@@ -87,6 +89,7 @@ namespace DmitryBrant.ImageFormats
             }
 
             byte[] palette = null;
+            var ctblPalette = new List<byte[]>();
 
             while (stream.Position < stream.Length)
             {
@@ -147,6 +150,30 @@ namespace DmitryBrant.ImageFormats
                     if ((mode & 0x80) != 0) { modeHalfBrite = true; }
                     if ((mode & 0x800) != 0) { modeHAM = true; }
                     haveCAMG = true;
+                }
+                else if (chunkName == "CTBL")
+                {
+                    haveCTBL = true;
+                    int bytesPerRow = (int)chunkSize / imgHeight;
+                    int rowsInChunk = (int)chunkSize / bytesPerRow;
+                    int colorsPerRow = Math.Min(bytesPerRow / 2, palette.Length / 3);
+                    for (int row = 0; row < rowsInChunk; row++)
+                    {
+                        var rowPal = new byte[palette.Length];
+                        ctblPalette.Add(rowPal);
+                        int ptr = row * bytesPerRow;
+                        int r, g, b;
+                        for (int c = 0; c < colorsPerRow; c++)
+                        {
+                            r = (tempBytes[ptr++] & 0xF);
+                            g = tempBytes[ptr++];
+                            b = g & 0xF;
+                            g = (g >> 4) & 0xF;
+                            rowPal[c * 3] = (byte)((r << 4) | r);
+                            rowPal[c * 3 + 1] = (byte)((g << 4) | g);
+                            rowPal[c * 3 + 2] = (byte)((b << 4) | b);
+                        }
+                    }
                 }
             }
 
@@ -290,6 +317,8 @@ namespace DmitryBrant.ImageFormats
                     }
                     else
                     {
+                        byte[] pal = haveCTBL && ctblPalette.Count > y ? ctblPalette[y] : palette;
+
                         for (int x = 0; x < imgWidth; x++)
                         {
                             index = (int)imageLine[x];
@@ -302,9 +331,9 @@ namespace DmitryBrant.ImageFormats
                             }
                             else
                             {
-                                prevR = palette[index * 3];
-                                prevG = palette[index * 3 + 1];
-                                prevB = palette[index * 3 + 2];
+                                prevR = pal[index * 3];
+                                prevG = pal[index * 3 + 1];
+                                prevB = pal[index * 3 + 2];
 
                                 bmpData[4 * (y * imgWidth + x)] = (byte)prevB;
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)prevG;
