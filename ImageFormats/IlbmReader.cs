@@ -285,9 +285,9 @@ namespace DmitryBrant.ImageFormats
                     {
                         for (int x = 0; x < imgWidth; x++)
                         {
-                            bmpData[4 * (y * imgWidth + x)] = (byte)(imageLine[x] & 0xFF);
+                            bmpData[4 * (y * imgWidth + x)] = (byte)((imageLine[x] >> 16) & 0xFF);
                             bmpData[4 * (y * imgWidth + x) + 1] = (byte)((imageLine[x] >> 8) & 0xFF);
-                            bmpData[4 * (y * imgWidth + x) + 2] = (byte)((imageLine[x] >> 16) & 0xFF);
+                            bmpData[4 * (y * imgWidth + x) + 2] = (byte)(imageLine[x] & 0xFF);
                             bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
                         }
                     }
