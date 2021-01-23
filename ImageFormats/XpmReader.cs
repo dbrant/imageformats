@@ -59,7 +59,6 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the picture, or null if loading failed.</returns>
         public static Bitmap Load(Stream stream)
         {
-            Bitmap bmp = null;
             int bmpWidth = -1, bmpHeight = -1, numColors = -1, charsPerPixel = -1;
             var colorDict = new Dictionary<string, UInt32>();
 
@@ -163,7 +162,7 @@ namespace DmitryBrant.ImageFormats
                 System.Diagnostics.Debug.WriteLine("Error while processing XPM file: " + e.Message);
             }
 
-            bmp = new Bitmap(bmpWidth, bmpHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var bmp = new Bitmap(bmpWidth, bmpHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             System.Drawing.Imaging.BitmapData bmpBits = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, bmpData.Length);
             bmp.UnlockBits(bmpBits);

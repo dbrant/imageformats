@@ -227,15 +227,14 @@ namespace DmitryBrant.ImageFormats
             catch (Exception e)
             {
                 //give a partial image in case of unexpected end-of-file
-
                 System.Diagnostics.Debug.WriteLine("Error while processing RAS file: " + e.Message);
             }
 
-            Bitmap theBitmap = new Bitmap((int)imgWidth, (int)imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-            System.Drawing.Imaging.BitmapData bmpBits = theBitmap.LockBits(new Rectangle(0, 0, theBitmap.Width, theBitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            Bitmap bmp = new Bitmap(imgWidth, imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            System.Drawing.Imaging.BitmapData bmpBits = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, bmpData.Length);
-            theBitmap.UnlockBits(bmpBits);
-            return theBitmap;
+            bmp.UnlockBits(bmpBits);
+            return bmp;
         }
 
         /// <summary>
@@ -245,8 +244,8 @@ namespace DmitryBrant.ImageFormats
         {
             private int currentByte = 0;
             private int runLength = 0, runIndex = 0;
-            private Stream stream;
-            private bool isRle;
+            private readonly Stream stream;
+            private readonly bool isRle;
 
             public RleReader(Stream stream, bool isRle)
             {
