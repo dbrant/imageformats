@@ -39,12 +39,10 @@ namespace DmitryBrant.ImageFormats
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Bitmap Load(string fileName){
-            Bitmap bmp;
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                bmp = Load(f);
+                return Load(f);
             }
-            return bmp;
         }
 
         /// <summary>

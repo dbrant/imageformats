@@ -40,12 +40,10 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Bitmap Load(string fileName)
         {
-            Bitmap bmp = null;
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                bmp = Load(f);
+                return Load(f);
             }
-            return bmp;
         }
 
         /// <summary>
@@ -56,7 +54,6 @@ namespace DmitryBrant.ImageFormats
         /// 
         public static Bitmap Load(Stream stream)
         {
-            Bitmap theBitmap = null;
             BinaryReader reader = new BinaryReader(stream);
             byte[] tempBytes = new byte[256];
 
@@ -240,8 +237,7 @@ namespace DmitryBrant.ImageFormats
             //detect whether the data is really a JPG image
             if ((data[0] == 0xFF) && (data[1] == 0xD8) && (data[2] == 0xFF))
             {
-                theBitmap = (Bitmap)Image.FromStream(dataStream);
-                return theBitmap;
+                return (Bitmap)Image.FromStream(dataStream);
             }
 
 
@@ -357,24 +353,21 @@ namespace DmitryBrant.ImageFormats
             catch (Exception e)
             {
                 //give a partial image in case of unexpected end-of-file
-
                 System.Diagnostics.Debug.WriteLine("Error while processing DICOM file: " + e.Message);
             }
 
-            theBitmap = new Bitmap((int)imgWidth, (int)imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-            System.Drawing.Imaging.BitmapData bmpBits = theBitmap.LockBits(new Rectangle(0, 0, theBitmap.Width, theBitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            var bmp = new Bitmap(imgWidth, imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            System.Drawing.Imaging.BitmapData bmpBits = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, imgWidth * 4 * imgHeight);
-            theBitmap.UnlockBits(bmpBits);
-
-            return theBitmap;
+            bmp.UnlockBits(bmpBits);
+            return bmp;
         }
 
 
 
         private static UInt16 getGroupNumber(BinaryReader reader, bool bigEndian)
         {
-            UInt16 ret = 0;
-            ret = Util.LittleEndian(reader.ReadUInt16());
+            UInt16 ret = Util.LittleEndian(reader.ReadUInt16());
             if (ret != 0x2)
                 if (bigEndian)
                     ret = Util.BigEndian((UInt16)ret);

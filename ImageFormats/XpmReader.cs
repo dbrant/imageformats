@@ -44,12 +44,10 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Bitmap Load(string fileName)
         {
-            Bitmap bmp = null;
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                bmp = Load(f);
+                return Load(f);
             }
-            return bmp;
         }
 
         /// <summary>
@@ -59,7 +57,6 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the picture, or null if loading failed.</returns>
         public static Bitmap Load(Stream stream)
         {
-            int bmpWidth = -1, bmpHeight = -1, numColors = -1, charsPerPixel = -1;
             var colorDict = new Dictionary<string, UInt32>();
 
             string str;
@@ -74,10 +71,10 @@ namespace DmitryBrant.ImageFormats
                 throw new ApplicationException("Invalid file format.");
             }
 
-            bmpWidth = Convert.ToInt32(strArray[0]);
-            bmpHeight = Convert.ToInt32(strArray[1]);
-            numColors = Convert.ToInt32(strArray[2]);
-            charsPerPixel = Convert.ToInt32(strArray[3]);
+            int bmpWidth = Convert.ToInt32(strArray[0]);
+            int bmpHeight = Convert.ToInt32(strArray[1]);
+            int numColors = Convert.ToInt32(strArray[2]);
+            int charsPerPixel = Convert.ToInt32(strArray[3]);
 
             //check for nonsensical dimensions
             if ((bmpWidth <= 0) || (bmpHeight <= 0) || (numColors <= 0) || (charsPerPixel <= 0))
