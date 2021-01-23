@@ -10,7 +10,7 @@ This is a test application that tests the ImageFormats class library
 included with this project. Refer to the individual source code
 files for each image type for more information.
 
-Copyright 2013-2016 Dmitry Brant
+Copyright 2013-2021 Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,7 @@ namespace ImageViewer
         public Form1()
         {
             InitializeComponent();
-            this.Text = Application.ProductName;
+            Text = Application.ProductName;
         }
 
         private void Form1_DragEnter(object sender, DragEventArgs e)
@@ -52,12 +52,14 @@ namespace ImageViewer
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var openDlg = new OpenFileDialog();
-            openDlg.DefaultExt = ".*";
-            openDlg.CheckFileExists = true;
-            openDlg.Title = Resources.openDlgTitle;
-            openDlg.Filter = "All Files (*.*)|*.*";
-            openDlg.FilterIndex = 1;
+            var openDlg = new OpenFileDialog
+            {
+                DefaultExt = ".*",
+                CheckFileExists = true,
+                Title = Resources.openDlgTitle,
+                Filter = "All Files (*.*)|*.*",
+                FilterIndex = 1
+            };
             if (openDlg.ShowDialog() == DialogResult.Cancel) return;
             OpenFile(openDlg.FileName);
         }
@@ -66,20 +68,15 @@ namespace ImageViewer
         {
             try
             {
-                Bitmap bmp = null;
-                bmp = DmitryBrant.ImageFormats.Picture.Load(fileName);
-                
+                Bitmap bmp = DmitryBrant.ImageFormats.Picture.Load(fileName);
                 if (bmp == null)
                 {
                     //try loading the file natively...
-                    try { bmp = (Bitmap)Bitmap.FromFile(fileName); }
+                    try { bmp = (Bitmap)Image.FromFile(fileName); }
                     catch (Exception e) { Debug.WriteLine(e.Message); }
                 }
 
-                if (bmp == null)
-                    throw new ApplicationException(Resources.errorLoadFailed);
-
-                pictureBox1.Image = bmp;
+                pictureBox1.Image = bmp ?? throw new ApplicationException(Resources.errorLoadFailed);
                 pictureBox1.Size = bmp.Size;
             }
             catch (Exception e)
