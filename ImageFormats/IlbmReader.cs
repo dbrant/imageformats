@@ -71,7 +71,6 @@ namespace DmitryBrant.ImageFormats
             bool modeHalfBrite = false;
             bool modeHAM = false;
 
-            Bitmap theBitmap = null;
             BinaryReader reader = new BinaryReader(stream);
 
 
@@ -401,11 +400,11 @@ namespace DmitryBrant.ImageFormats
                 System.Diagnostics.Debug.WriteLine("Error while processing ILBM file: " + e.Message);
             }
 
-            theBitmap = new Bitmap((int)imgWidth, (int)imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            System.Drawing.Imaging.BitmapData bmpBits = theBitmap.LockBits(new Rectangle(0, 0, theBitmap.Width, theBitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var bmp = new Bitmap(imgWidth, imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            System.Drawing.Imaging.BitmapData bmpBits = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, imgWidth * 4 * imgHeight);
-            theBitmap.UnlockBits(bmpBits);
-            return theBitmap;
+            bmp.UnlockBits(bmpBits);
+            return bmp;
         }
 
         private class BitPlaneReader
@@ -439,7 +438,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         private class ByteRun1Decoder
         {
-            private Stream stream;
+            private readonly Stream stream;
 
             public ByteRun1Decoder(Stream stream)
             {

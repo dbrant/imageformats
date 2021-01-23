@@ -115,11 +115,11 @@ namespace DmitryBrant.ImageFormats
                 System.Diagnostics.Debug.WriteLine("Error while processing MacPaint file: " + e.Message);
             }
 
-            var theBitmap = new Bitmap(imgWidth, imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-            System.Drawing.Imaging.BitmapData bmpBits = theBitmap.LockBits(new Rectangle(0, 0, theBitmap.Width, theBitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            var bmp = new Bitmap(imgWidth, imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            System.Drawing.Imaging.BitmapData bmpBits = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, imgWidth * 4 * imgHeight);
-            theBitmap.UnlockBits(bmpBits);
-            return theBitmap;
+            bmp.UnlockBits(bmpBits);
+            return bmp;
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace DmitryBrant.ImageFormats
             private int currentByte = 0;
             private int runLength = 0;
             private bool runType;
-            private Stream stream;
+            private readonly Stream stream;
 
             public RleReader(Stream stream)
             {
