@@ -115,6 +115,10 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = IlbmReader.Load(stream);
             }
+            else if ((header[0x0] == 1) && (header[0x1] == 0xDA))
+            {
+                bmp = SgiReader.Load(stream);
+            }
 
             return bmp;
         }
