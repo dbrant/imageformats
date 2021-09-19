@@ -90,7 +90,7 @@ namespace DmitryBrant.ImageFormats
             stream.Read(header, 0, header.Length);
             stream.Seek(0, SeekOrigin.Begin);
 
-            if ((header[0] == 0xA) && (header[1] >= 0x3) && (header[1] <= 0x5) && (header[2] == 0x1) && ((header[3] == 0x1) || (header[3] == 0x2) || (header[3] == 0x4) || (header[3] == 0x8)))
+            if ((header[0] == 0xA) && (header[1] <= 0x5) && (header[2] == 0x1) && ((header[3] == 0x1) || (header[3] == 0x2) || (header[3] == 0x4) || (header[3] == 0x8)))
             {
                 bmp = PcxReader.Load(stream);
             }
