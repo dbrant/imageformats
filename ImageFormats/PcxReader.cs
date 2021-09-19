@@ -67,15 +67,10 @@ namespace DmitryBrant.ImageFormats
 
             // This variable controls whether the bit plane values are interpreted as literal color states
             // instead of indices into the palette. In other words, this controls whether the palette is
-            // used or ignored. Right now the only way to determine whether the palette is used is by
-            // the version number of the file.
+            // used or ignored. As far as I can tell the only way to determine whether the palette is used
+            // is by the version number of the file.
             // If the colors in your decoded picture look weird, try tweaking this variable.
-            bool bitPlanesLiteral = false;
-            if (version == 3 || version == 4)
-            {
-                // PaintBrush 2.8 without palette information.
-                bitPlanesLiteral = true;
-            }
+            bool bitPlanesLiteral = version == 3 || version == 4; // PaintBrush 2.8 without palette information.
 
             tempByte = (byte)stream.ReadByte();
             if (tempByte != 1)
