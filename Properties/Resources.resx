@@ -126,4 +126,7 @@
   <data name="openDlgTitle" xml:space="preserve">
     <value>Open file...</value>
   </data>
+  <data name="saveDlgTitle" xml:space="preserve">
+    <value>Save as...</value>
+  </data>
 </root>

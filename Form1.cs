@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 /*
@@ -85,5 +86,32 @@ namespace ImageViewer
             }
         }
 
+        private void mnuSaveAs_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var image = pictureBox1.Image;
+                if (image == null)
+                {
+                    return;
+                }
+                var saveDlg = new SaveFileDialog
+                {
+                    AddExtension = true,
+                    OverwritePrompt = true,
+                    Title = Resources.openDlgTitle,
+                    Filter = "PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg",
+                    DefaultExt = ".png",
+                    FilterIndex = 1
+                };
+                if (saveDlg.ShowDialog() == DialogResult.Cancel) return;
+                image.Save(saveDlg.FileName, Path.GetExtension(saveDlg.FileName).ToLower() == ".jpg"
+                    ? System.Drawing.Imaging.ImageFormat.Jpeg : System.Drawing.Imaging.ImageFormat.Png);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+        }
     }
 }
