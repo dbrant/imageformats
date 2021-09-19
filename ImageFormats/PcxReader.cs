@@ -61,9 +61,21 @@ namespace DmitryBrant.ImageFormats
             if (tempByte != 10)
                 throw new ApplicationException("This is not a valid PCX file.");
 
-            tempByte = (byte)stream.ReadByte();
-            if (tempByte < 3 || tempByte > 5)
-                throw new ApplicationException("Only Version 3, 4, and 5 PCX files are supported.");
+            var version = (byte)stream.ReadByte();
+            if (version < 2 || version > 5)
+                throw new ApplicationException("Only Version 2, 3, 4, and 5 PCX files are supported.");
+
+            // This variable controls whether the bit plane values are interpreted as literal color states
+            // instead of indices into the palette. In other words, this controls whether the palette is
+            // used or ignored. Right now the only way to determine whether the palette is used is by
+            // the version number of the file.
+            // If the colors in your decoded picture look weird, try tweaking this variable.
+            bool bitPlanesLiteral = false;
+            if (version == 3 || version == 4)
+            {
+                // PaintBrush 2.8 without palette information.
+                bitPlanesLiteral = true;
+            }
 
             tempByte = (byte)stream.ReadByte();
             if (tempByte != 1)
@@ -95,13 +107,6 @@ namespace DmitryBrant.ImageFormats
             int bytesPerLine = Util.LittleEndian(reader.ReadUInt16());
             if (bytesPerLine == 0) bytesPerLine = xmax - xmin + 1;
             
-            /*
-             * HACK: Set the following parameter to true if you want to interpret the bit plane data as literal color states,
-             * instead of indices into the palette. This was done by certain older versions of PaintBrush in EGA mode.
-             * If the colors in your decoded picture look weird, try tweaking this setting.
-             */
-            bool bitPlanesLiteral = false;
-
             // TODO: use this for something? It doesn't seem to be consistent or meaningful between different versions.
             Util.LittleEndian(reader.ReadUInt16());
 
