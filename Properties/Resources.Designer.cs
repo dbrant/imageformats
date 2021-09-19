@@ -88,6 +88,15 @@ namespace ImageViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg.
+        /// </summary>
+        internal static string saveDlgFilter {
+            get {
+                return ResourceManager.GetString("saveDlgFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Save as....
         /// </summary>
         internal static string saveDlgTitle {

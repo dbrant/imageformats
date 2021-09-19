@@ -126,6 +126,9 @@
   <data name="openDlgTitle" xml:space="preserve">
     <value>Open file...</value>
   </data>
+  <data name="saveDlgFilter" xml:space="preserve">
+    <value>PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg</value>
+  </data>
   <data name="saveDlgTitle" xml:space="preserve">
     <value>Save as...</value>
   </data>

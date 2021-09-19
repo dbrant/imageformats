@@ -58,7 +58,7 @@ namespace ImageViewer
                 DefaultExt = ".*",
                 CheckFileExists = true,
                 Title = Resources.openDlgTitle,
-                Filter = "All Files (*.*)|*.*",
+                Filter = Resources.openDlgFilter,
                 FilterIndex = 1
             };
             if (openDlg.ShowDialog() == DialogResult.Cancel) return;
@@ -99,8 +99,8 @@ namespace ImageViewer
                 {
                     AddExtension = true,
                     OverwritePrompt = true,
-                    Title = Resources.openDlgTitle,
-                    Filter = "PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg",
+                    Title = Resources.saveDlgTitle,
+                    Filter = Resources.saveDlgFilter,
                     DefaultExt = ".png",
                     FilterIndex = 1
                 };
