@@ -65,7 +65,7 @@ namespace DmitryBrant.ImageFormats
             UInt32 dataLength = Util.BigEndian(reader.ReadUInt32());
             UInt32 rasType = Util.BigEndian(reader.ReadUInt32());
             UInt32 mapType = Util.BigEndian(reader.ReadUInt32());
-            UInt32 mapLength = Util.BigEndian(reader.ReadUInt32());
+            int mapLength = (int)Util.BigEndian(reader.ReadUInt32());
 
             RleReader rleReader = new RleReader(stream, rasType == 2);
 
@@ -161,12 +161,13 @@ namespace DmitryBrant.ImageFormats
 
                         if (imgWidth % 2 == 1) rleReader.ReadByte();
 
-                        if ((mapType > 0) && (mapLength == 768))
+                        if ((mapType > 0) && (mapLength > 0))
                         {
+                            int mapDiv = mapLength / 3;
                             for (int dx = 0; dx < imgWidth; dx++)
                             {
-                                bmpData[bytePtr++] = colorPalette[scanline[dx] + 512];
-                                bmpData[bytePtr++] = colorPalette[scanline[dx] + 256];
+                                bmpData[bytePtr++] = colorPalette[scanline[dx] + mapDiv * 2];
+                                bmpData[bytePtr++] = colorPalette[scanline[dx] + mapDiv];
                                 bmpData[bytePtr++] = colorPalette[scanline[dx]];
                                 bytePtr++;
                             }
