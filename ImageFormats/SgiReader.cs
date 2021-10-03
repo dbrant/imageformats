@@ -164,13 +164,19 @@ namespace DmitryBrant.ImageFormats
                                     if ((i & 0x80) != 0)
                                     {
                                         for (k = 0; k < j; k++)
+                                        {
+                                            if (scanPtr >= imgWidth) { scanPtr = 0; }
                                             scanline[scanLineIndex, scanPtr++] = (byte)stream.ReadByte();
+                                        }
                                     }
                                     else
                                     {
                                         b = stream.ReadByte();
                                         for (k = 0; k < j; k++)
+                                        {
+                                            if (scanPtr >= imgWidth) { scanPtr = 0; }
                                             scanline[scanLineIndex, scanPtr++] = (byte)b;
+                                        }
                                     }
                                 }
                             }
