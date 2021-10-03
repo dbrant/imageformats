@@ -74,7 +74,7 @@ namespace DmitryBrant.ImageFormats
             // used or ignored. As far as I can tell the only way to determine whether the palette is used
             // is by the version number of the file.
             // If the colors in your decoded picture look weird, try tweaking this variable.
-            bool bitPlanesLiteral = version == 3 || version == 4; // PaintBrush 2.8 without palette information.
+            bool usePalette = version != 3 && version != 4; // PaintBrush 2.8 without palette information.
 
             tempByte = (byte)stream.ReadByte();
             if (tempByte != 1)
@@ -98,6 +98,9 @@ namespace DmitryBrant.ImageFormats
             Util.LittleEndian(reader.ReadUInt16()); //hdpi
             Util.LittleEndian(reader.ReadUInt16()); //vdpi
 
+            int[] egaColors = { 0x0, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xAA5500, 0xAAAAAA,
+                    0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF, };
+
             byte[] colorPalette = new byte[48];
             stream.Read(colorPalette, 0, 48);
             stream.ReadByte();
@@ -115,9 +118,9 @@ namespace DmitryBrant.ImageFormats
                 stream.Read(colorPalette, 0, 768);
             }
 
-            if (imgBpp == 1 && numPlanes == 1 && bitPlanesLiteral == false)
+            if (imgBpp == 1 && numPlanes == 1 && usePalette)
             {
-                bitPlanesLiteral = true;
+                usePalette = false;
 
                 // With 1-bpp images that claim to have palette information, we have a bit of a problem:
                 // Images seen in the wild don't seem to be consistent about whether they actually use
@@ -137,17 +140,14 @@ namespace DmitryBrant.ImageFormats
                 if (remainingZeros && (colorPalette[0] != 0 || colorPalette[1] != 0 || colorPalette[2] != 0
                     || colorPalette[3] != 0 || colorPalette[4] != 0 || colorPalette[5] != 0))
                 {
-                    bitPlanesLiteral = false;
+                    usePalette = true;
                 }
             }
 
-            if (useCgaPalette && !bitPlanesLiteral)
+            if (useCgaPalette && usePalette)
             {
                 int backgroundColor = colorPalette[0] >> 4;
                 int flags = colorPalette[3] >> 5;
-                int[] cgaColors = { 0x0, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xAA5500, 0xAAAAAA,
-                    0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF, };
-
                 int[] newColors = new int[4];
 
                 if (imgBpp == 1)
@@ -155,7 +155,7 @@ namespace DmitryBrant.ImageFormats
                     // For monochrome images, the background color actually goes in palette index 1,
                     // and index 0 is always black.
                     newColors[0] = 0;
-                    newColors[1] = cgaColors[backgroundColor];
+                    newColors[1] = egaColors[backgroundColor];
                 }
                 else if (imgBpp == 2)
                 {
@@ -172,7 +172,7 @@ namespace DmitryBrant.ImageFormats
                         intensity = colorPalette[4] > 200 || colorPalette[5] > 200;
                     }
 
-                    newColors[0] = cgaColors[backgroundColor];
+                    newColors[0] = egaColors[backgroundColor];
                     if (!palette0or1)
                     {
                         if (!intensity) { newColors[1] = 0x00AA00; newColors[2] = 0xAA0000; newColors[3] = 0xAA5500; }
@@ -231,14 +231,14 @@ namespace DmitryBrant.ImageFormats
                         {
                             i = realscanline[x];
 
-                            if (bitPlanesLiteral && numPlanes == 1)
+                            if (!usePalette && numPlanes == 1)
                             {
                                 b = i != 0 ? 0xFF : 0;
                                 bmpData[4 * (y * imgWidth + x)] = (byte)b;
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)b;
                                 bmpData[4 * (y * imgWidth + x) + 2] = (byte)b;
                             }
-                            else if (bitPlanesLiteral && numPlanes == 3)
+                            else if (!usePalette && numPlanes == 3)
                             {
                                 // 3 planes = R / G / B
                                 // Bit values for each plane represent 0 = no brightness or 1 = full brightness.
@@ -246,7 +246,7 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? 0xFF : 0);
                                 bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? 0xFF : 0);
                             }
-                            else if (bitPlanesLiteral && numPlanes == 4)
+                            else if (!usePalette && numPlanes == 4)
                             {
                                 // 4 planes = R / G / B / I (intensity)
                                 // Intensity 0 = half brightness, 1 = full brightness.
