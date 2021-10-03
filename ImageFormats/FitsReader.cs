@@ -94,13 +94,13 @@ namespace DmitryBrant.ImageFormats
 
                     try
                     {
-                        if (parts[0] == "BITPIX") { Int32.TryParse(parts[1], out bitsPerPixel); }
-                        else if (parts[0] == "NAXIS") { Int32.TryParse(parts[1], out numAxes); }
-                        else if (parts[0] == "NAXIS1") { Int32.TryParse(parts[1], out axisLength[0]); }
-                        else if (parts[0] == "NAXIS2") { Int32.TryParse(parts[1], out axisLength[1]); }
-                        else if (parts[0] == "NAXIS3") { Int32.TryParse(parts[1], out axisLength[2]); }
-                        else if (parts[0] == "NAXIS4") { Int32.TryParse(parts[1], out axisLength[3]); }
-                        else if (parts[0] == "NAXIS5") { Int32.TryParse(parts[1], out axisLength[4]); }
+                        if (parts[0] == "BITPIX") { int.TryParse(parts[1], out bitsPerPixel); }
+                        else if (parts[0] == "NAXIS") { int.TryParse(parts[1], out numAxes); }
+                        else if (parts[0] == "NAXIS1") { int.TryParse(parts[1], out axisLength[0]); }
+                        else if (parts[0] == "NAXIS2") { int.TryParse(parts[1], out axisLength[1]); }
+                        else if (parts[0] == "NAXIS3") { int.TryParse(parts[1], out axisLength[2]); }
+                        else if (parts[0] == "NAXIS4") { int.TryParse(parts[1], out axisLength[3]); }
+                        else if (parts[0] == "NAXIS5") { int.TryParse(parts[1], out axisLength[4]); }
                         else if (parts[0] == "DATAMIN") { TryParseFloat(parts[1], out dataMin[0]); for (int m = 1; m < dataMin.Length; m++) { dataMin[m] = dataMin[0]; } }
                         else if (parts[0] == "DATAMAX") { TryParseFloat(parts[1], out dataMax[0]); for (int m = 1; m < dataMax.Length; m++) { dataMax[m] = dataMax[0]; } }
                         else if (parts[0] == "GOODMIN") { TryParseFloat(parts[1], out dataMin[0]); for (int m = 1; m < dataMin.Length; m++) { dataMin[m] = dataMin[0]; } }
@@ -197,7 +197,7 @@ namespace DmitryBrant.ImageFormats
                         for (int x = 0; x < width; x++)
                         {
                             f = reader.ReadElement();
-                            f = ((f - dataMin[0]) / (dataMax[0] - dataMin[0]));
+                            f = (f - dataMin[0]) / (dataMax[0] - dataMin[0]);
 
                             f = Math.Min(f *= 255, 255);
                             bmpData[4 * (y * width + x)] = (byte)f;
@@ -220,7 +220,7 @@ namespace DmitryBrant.ImageFormats
                             {
                                 f = reader.ReadElement();
 
-                                f = ((f - dataMin[0]) / (dataMax[0] - dataMin[0]));
+                                f = (f - dataMin[0]) / (dataMax[0] - dataMin[0]);
                                 f = Math.Min(f *= 255, 255);
 
                                 bmpData[4 * (y * width + x) + 2] = (byte)f;
@@ -232,7 +232,7 @@ namespace DmitryBrant.ImageFormats
                             {
                                 f = reader.ReadElement();
 
-                                f = ((f - dataMin[1]) / (dataMax[1] - dataMin[1]));
+                                f = (f - dataMin[1]) / (dataMax[1] - dataMin[1]);
                                 f = Math.Min(f *= 255, 255);
 
                                 bmpData[4 * (y * width + x) + 1] = (byte)f;
@@ -244,7 +244,7 @@ namespace DmitryBrant.ImageFormats
                             {
                                 f = reader.ReadElement();
 
-                                f = ((f - dataMin[2]) / (dataMax[2] - dataMin[2]));
+                                f = (f - dataMin[2]) / (dataMax[2] - dataMin[2]);
                                 f = Math.Min(f *= 255, 255);
 
                                 bmpData[4 * (y * width + x)] = (byte)f;
@@ -259,12 +259,12 @@ namespace DmitryBrant.ImageFormats
                             {
                                 f = reader.ReadElement();
 
-                                f = ((f - dataMin[0]) / (dataMax[0] - dataMin[0]));
-                                f = Math.Min(f *= 255, 255);
+                                f = (f - dataMin[0]) / (dataMax[0] - dataMin[0]);
+                                f = Math.Min(f * 255, 255);
 
-                                bmpData[4 * (y * width + x)] = (byte)(f);
-                                bmpData[4 * (y * width + x) + 1] = (byte)(f);
-                                bmpData[4 * (y * width + x) + 2] = (byte)(f);
+                                bmpData[4 * (y * width + x)] = (byte)f;
+                                bmpData[4 * (y * width + x) + 1] = (byte)f;
+                                bmpData[4 * (y * width + x) + 2] = (byte)f;
                             }
                         }
                     }
