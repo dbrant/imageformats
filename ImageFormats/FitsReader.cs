@@ -55,7 +55,6 @@ namespace DmitryBrant.ImageFormats
         {
             byte[] tempBytes = new byte[HEADER_ITEM_LENGTH];
             Bitmap bmp = null;
-            int fileSize = 0;
             int maxHeaderItems = 1000;
 
             string itemStr;
@@ -71,7 +70,6 @@ namespace DmitryBrant.ImageFormats
                 for (int i = 0; i < maxHeaderItems; i++)
                 {
                     stream.Read(tempBytes, 0, HEADER_ITEM_LENGTH);
-                    fileSize += HEADER_ITEM_LENGTH;
 
                     itemStr = Encoding.ASCII.GetString(tempBytes, 0, HEADER_ITEM_LENGTH);
                     if (itemStr.IndexOf('/') > 0)
@@ -121,10 +119,9 @@ namespace DmitryBrant.ImageFormats
                     }
                 }
 
-                if (fileSize % HEADER_BLOCK_LENGTH > 0)
+                if (stream.Position % HEADER_BLOCK_LENGTH > 0)
                 {
-                    stream.Seek(HEADER_BLOCK_LENGTH - (fileSize % HEADER_BLOCK_LENGTH), SeekOrigin.Current);
-                    fileSize += HEADER_BLOCK_LENGTH - (fileSize % HEADER_BLOCK_LENGTH);
+                    stream.Seek(HEADER_BLOCK_LENGTH - (stream.Position % HEADER_BLOCK_LENGTH), SeekOrigin.Current);
                 }
 
                 for (int m = 0; m < dataMax.Length; m++)
@@ -174,10 +171,9 @@ namespace DmitryBrant.ImageFormats
                 stream.Seek(prevPos + dataSize, SeekOrigin.Begin);
 
                 // again, align to the next block
-                if (fileSize % HEADER_BLOCK_LENGTH > 0)
+                if (stream.Position % HEADER_BLOCK_LENGTH > 0)
                 {
-                    stream.Seek(HEADER_BLOCK_LENGTH - (fileSize % HEADER_BLOCK_LENGTH), SeekOrigin.Current);
-                    fileSize += HEADER_BLOCK_LENGTH - (fileSize % HEADER_BLOCK_LENGTH);
+                    stream.Seek(HEADER_BLOCK_LENGTH - (stream.Position % HEADER_BLOCK_LENGTH), SeekOrigin.Current);
                 }
             }
             return bmp;
