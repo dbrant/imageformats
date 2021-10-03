@@ -192,7 +192,7 @@ namespace DmitryBrant.ImageFormats
                 {
                     bmpData = new byte[4 * width * height];
 
-                    for (int y = 0; y < height; y++)
+                    for (int y = height - 1; y >= 0; y--)
                     {
                         for (int x = 0; x < width; x++)
                         {
@@ -214,7 +214,7 @@ namespace DmitryBrant.ImageFormats
                     {
                         // very likely an RGB image
 
-                        for (int y = 0; y < height; y++)
+                        for (int y = height - 1; y >= 0; y--)
                         {
                             for (int x = 0; x < width; x++)
                             {
@@ -226,7 +226,7 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * width + x) + 2] = (byte)f;
                             }
                         }
-                        for (int y = 0; y < height; y++)
+                        for (int y = height - 1; y >= 0; y--)
                         {
                             for (int x = 0; x < width; x++)
                             {
@@ -238,7 +238,7 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * width + x) + 1] = (byte)f;
                             }
                         }
-                        for (int y = 0; y < height; y++)
+                        for (int y = height - 1; y >= 0; y--)
                         {
                             for (int x = 0; x < width; x++)
                             {
@@ -253,7 +253,7 @@ namespace DmitryBrant.ImageFormats
                     }
                     else
                     {
-                        for (int y = 0; y < height; y++)
+                        for (int y = height - 1; y >= 0; y--)
                         {
                             for (int x = 0; x < width; x++)
                             {
