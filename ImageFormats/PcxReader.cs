@@ -52,8 +52,12 @@ namespace DmitryBrant.ImageFormats
         /// Reads a PCX image from a stream.
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
+        /// <param name="useCgaPalette">Whether to treat the image as having a CGA palette configuration.
+        /// This is impossible to detect automatically from the file header, so this parameter can be
+        /// specified explicitly if you expect this image to use CGA palette information, as defined in
+        /// the PCX specification.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(Stream stream)
+        public static Bitmap Load(Stream stream, bool useCgaPalette = false)
         {
             BinaryReader reader = new BinaryReader(stream);
 
@@ -102,7 +106,6 @@ namespace DmitryBrant.ImageFormats
             int bytesPerLine = Util.LittleEndian(reader.ReadUInt16());
             if (bytesPerLine == 0) bytesPerLine = xmax - xmin + 1;
             
-            // TODO: use this for something? It doesn't seem to be consistent or meaningful between different versions.
             int paletteInfo = Util.LittleEndian(reader.ReadUInt16());
 
             if (imgBpp == 8 && numPlanes == 1)
@@ -135,6 +138,57 @@ namespace DmitryBrant.ImageFormats
                     || colorPalette[3] != 0 || colorPalette[4] != 0 || colorPalette[5] != 0))
                 {
                     bitPlanesLiteral = false;
+                }
+            }
+
+            if (useCgaPalette && !bitPlanesLiteral)
+            {
+                int backgroundColor = colorPalette[0] >> 4;
+                int flags = colorPalette[3] >> 5;
+                int[] cgaColors = { 0x0, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xAA5500, 0xAAAAAA,
+                    0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF, };
+
+                int[] newColors = new int[4];
+
+                if (imgBpp == 1)
+                {
+                    // For monochrome images, the background color actually goes in palette index 1,
+                    // and index 0 is always black.
+                    newColors[0] = 0;
+                    newColors[1] = cgaColors[backgroundColor];
+                }
+                else if (imgBpp == 2)
+                {
+                    bool intensity;
+                    bool palette0or1;
+                    if (paletteInfo == 0)
+                    {
+                        palette0or1 = (flags & 0x2) != 0;
+                        intensity = (flags & 0x1) != 0;
+                    }
+                    else
+                    {
+                        palette0or1 = colorPalette[4] <= colorPalette[5];
+                        intensity = colorPalette[4] > 200 || colorPalette[5] > 200;
+                    }
+
+                    newColors[0] = cgaColors[backgroundColor];
+                    if (!palette0or1)
+                    {
+                        if (!intensity) { newColors[1] = 0x00AA00; newColors[2] = 0xAA0000; newColors[3] = 0xAA5500; }
+                        else { newColors[1] = 0x55FF55; newColors[2] = 0xFF5555; newColors[3] = 0xFFFF55; }
+                    }
+                    else
+                    {
+                        if (!intensity) { newColors[1] = 0x00AAAA; newColors[2] = 0xAA00AA; newColors[3] = 0xAAAAAA; }
+                        else { newColors[1] = 0x55FFFF; newColors[2] = 0xFF55FF; newColors[3] = 0xFFFFFF; }
+                    }
+                }
+                for (int c = 0; c < 4; c++)
+                {
+                    colorPalette[c * 3] = (byte)((newColors[c] >> 16) & 0xFF);
+                    colorPalette[c * 3 + 1] = (byte)((newColors[c] >> 8) & 0xFF);
+                    colorPalette[c * 3 + 2] = (byte)(newColors[c] & 0xFF);
                 }
             }
 
