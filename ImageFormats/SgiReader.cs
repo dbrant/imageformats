@@ -211,7 +211,7 @@ namespace DmitryBrant.ImageFormats
                             for (int x = 0; x < imgWidth; x++)
                             {
                                 i = stream.ReadByte();
-                                bmpData[4 * (y * imgWidth + x)] = (byte)i;
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)i;
                             }
                         }
                         for (int y = imgHeight - 1; y >= 0; y--)
@@ -227,7 +227,7 @@ namespace DmitryBrant.ImageFormats
                             for (int x = 0; x < imgWidth; x++)
                             {
                                 i = stream.ReadByte();
-                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)i;
+                                bmpData[4 * (y * imgWidth + x)] = (byte)i;
                             }
                         }
                     }
