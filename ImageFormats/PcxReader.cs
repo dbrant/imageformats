@@ -103,7 +103,7 @@ namespace DmitryBrant.ImageFormats
             if (bytesPerLine == 0) bytesPerLine = xmax - xmin + 1;
             
             // TODO: use this for something? It doesn't seem to be consistent or meaningful between different versions.
-            Util.LittleEndian(reader.ReadUInt16());
+            int paletteInfo = Util.LittleEndian(reader.ReadUInt16());
 
             if (imgBpp == 8 && numPlanes == 1)
             {
@@ -112,13 +112,28 @@ namespace DmitryBrant.ImageFormats
                 stream.Read(colorPalette, 0, 768);
             }
 
-            //fix color palette if it's a 1-bit image, and there's no palette information
-            if (imgBpp == 1)
+            if (imgBpp == 1 && numPlanes == 1 && bitPlanesLiteral == false)
             {
-                if ((colorPalette[0] == colorPalette[3]) && (colorPalette[1] == colorPalette[4]) && (colorPalette[2] == colorPalette[5]))
+                bitPlanesLiteral = true;
+                // With 1-bpp images that claim to have palette information, we have a bit of a problem:
+                // Images seen in the wild don't seem to be consistent about whether they actually use
+                // the palette for 1-bit images.
+                // This is a hacky way to detect whether the palette should be used. We look at the first
+                // three RGB triplets, and if they are nonzero, *and* if the rest of the palette is zero,
+                // then the palette will be used. Otherwise, the 1-bit image will be treated as black/white.
+                bool remainingZeros = true;
+                for (int c = 6; c < colorPalette.Length; c++)
                 {
-                    colorPalette[0] = colorPalette[1] = colorPalette[2] = 0;
-                    colorPalette[3] = colorPalette[4] = colorPalette[5] = 0xFF;
+                    if (colorPalette[c] != 0)
+                    {
+                        remainingZeros = false;
+                        break;
+                    }
+                }
+                if (remainingZeros && (colorPalette[0] != 0 || colorPalette[1] != 0 || colorPalette[2] != 0
+                    || colorPalette[3] != 0 || colorPalette[4] != 0 || colorPalette[5] != 0))
+                {
+                    bitPlanesLiteral = false;
                 }
             }
 
@@ -161,26 +176,31 @@ namespace DmitryBrant.ImageFormats
                         {
                             i = realscanline[x];
 
-                            if (numPlanes == 1)
+                            if (bitPlanesLiteral && numPlanes == 1)
+                            {
+                                b = i != 0 ? 0xFF : 0;
+                                bmpData[4 * (y * imgWidth + x)] = (byte)b;
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)b;
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)b;
+                            }
+                            else if (bitPlanesLiteral && numPlanes == 3)
                             {
                                 bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? 0xFF : 0);
-                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 1) != 0 ? 0xFF : 0);
-                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 1) != 0 ? 0xFF : 0);
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? 0xFF : 0);
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? 0xFF : 0);
+                            }
+                            else if (bitPlanesLiteral && numPlanes == 4)
+                            {
+                                b = (i & 8) != 0 ? 0xFF : 0x80; // plane 3 = intensity
+                                bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? b : 0);
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? b : 0);
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? b : 0);
                             }
                             else
                             {
-                                if (bitPlanesLiteral)
-                                {
-                                    bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? 0xFF : 0);
-                                    bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? 0xFF : 0);
-                                    bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? 0xFF : 0);
-                                }
-                                else
-                                {
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[i * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[i * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[i * 3];
-                                }
+                                bmpData[4 * (y * imgWidth + x)] = colorPalette[i * 3 + 2];
+                                bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[i * 3 + 1];
+                                bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[i * 3];
                             }
                         }
                     }
