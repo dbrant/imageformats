@@ -115,6 +115,7 @@ namespace DmitryBrant.ImageFormats
             if (imgBpp == 1 && numPlanes == 1 && bitPlanesLiteral == false)
             {
                 bitPlanesLiteral = true;
+
                 // With 1-bpp images that claim to have palette information, we have a bit of a problem:
                 // Images seen in the wild don't seem to be consistent about whether they actually use
                 // the palette for 1-bit images.
@@ -185,13 +186,17 @@ namespace DmitryBrant.ImageFormats
                             }
                             else if (bitPlanesLiteral && numPlanes == 3)
                             {
+                                // 3 planes = R / G / B
+                                // Bit values for each plane represent 0 = no brightness or 1 = full brightness.
                                 bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? 0xFF : 0);
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? 0xFF : 0);
                                 bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? 0xFF : 0);
                             }
                             else if (bitPlanesLiteral && numPlanes == 4)
                             {
-                                b = (i & 8) != 0 ? 0xFF : 0x80; // plane 3 = intensity
+                                // 4 planes = R / G / B / I (intensity)
+                                // Intensity 0 = half brightness, 1 = full brightness.
+                                b = (i & 8) != 0 ? 0xFF : 0x80;
                                 bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? b : 0);
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? b : 0);
                                 bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? b : 0);
