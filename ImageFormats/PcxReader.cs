@@ -144,6 +144,18 @@ namespace DmitryBrant.ImageFormats
                 }
             }
 
+            if (!usePalette && imgBpp == 1 && (numPlanes == 3 || numPlanes == 4))
+            {
+                // Special handling for EGA images that don't contain palette information:
+                // Pre-populate our palette with standard EGA colors.
+                for (int c = 0; c < egaColors.Length; c++)
+                {
+                    colorPalette[c * 3] = (byte)((egaColors[c] >> 16) & 0xFF);
+                    colorPalette[c * 3 + 1] = (byte)((egaColors[c] >> 8) & 0xFF);
+                    colorPalette[c * 3 + 2] = (byte)(egaColors[c] & 0xFF);
+                }
+            }
+
             if (useCgaPalette && usePalette)
             {
                 int backgroundColor = colorPalette[0] >> 4;
@@ -237,23 +249,6 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * imgWidth + x)] = (byte)b;
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)b;
                                 bmpData[4 * (y * imgWidth + x) + 2] = (byte)b;
-                            }
-                            else if (!usePalette && numPlanes == 3)
-                            {
-                                // 3 planes = R / G / B
-                                // Bit values for each plane represent 0 = no brightness or 1 = full brightness.
-                                bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? 0xFF : 0);
-                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? 0xFF : 0);
-                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? 0xFF : 0);
-                            }
-                            else if (!usePalette && numPlanes == 4)
-                            {
-                                // 4 planes = R / G / B / I (intensity)
-                                // Intensity 0 = half brightness, 1 = full brightness.
-                                b = (i & 8) != 0 ? 0xFF : 0x80;
-                                bmpData[4 * (y * imgWidth + x)] = (byte)((i & 1) != 0 ? b : 0);
-                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)((i & 2) != 0 ? b : 0);
-                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)((i & 4) != 0 ? b : 0);
                             }
                             else
                             {
