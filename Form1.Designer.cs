@@ -32,9 +32,9 @@
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuOpen = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuSaveAs = new System.Windows.Forms.ToolStripMenuItem();
             this.panel1 = new System.Windows.Forms.Panel();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            this.mnuSaveAs = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -61,6 +61,12 @@
             this.mnuOpen.Name = "mnuOpen";
             this.mnuOpen.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
+            // mnuSaveAs
+            // 
+            resources.ApplyResources(this.mnuSaveAs, "mnuSaveAs");
+            this.mnuSaveAs.Name = "mnuSaveAs";
+            this.mnuSaveAs.Click += new System.EventHandler(this.mnuSaveAs_Click);
+            // 
             // panel1
             // 
             this.panel1.AllowDrop = true;
@@ -75,12 +81,6 @@
             resources.ApplyResources(this.pictureBox1, "pictureBox1");
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.TabStop = false;
-            // 
-            // mnuSaveAs
-            // 
-            resources.ApplyResources(this.mnuSaveAs, "mnuSaveAs");
-            this.mnuSaveAs.Name = "mnuSaveAs";
-            this.mnuSaveAs.Click += new System.EventHandler(this.mnuSaveAs_Click);
             // 
             // Form1
             // 

@@ -123,16 +123,16 @@
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="mnuOpen.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
-        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAB2UlEQVQ4T6XT30uTURzH8U83
-        4V1dJQR10R8w6D8o8FdUCF7UVRexSJCoBCmCKNeaWdZ0WeQksUY//NFsahkFQo1S5qwLizZH29TQnI89
-        uvmYOt0+fQ+LrgY90sXr6pz3Od9zcUDyv2DkWn6j9bAIWx4WtR6oy1GbrcKeTyabpb68zKimcX8gS8uA
-        wT9r1r8HDDvgoOEjk15mF7uZ0Tu5Mf+U63OPmZ71cG3mAVe/t3FlspW/4i1cmXBTNUK1wHs76lWc0Z5w
-        I/GI6z88TE+3S3Q/F8Xu0fh2h0vjLiZDThqRZqpG5CZ4Z0ODutlMvPilgUvhJqpGnoGgwOBlONXICf8J
-        Tr0s59SLw5zsP8SJvoOM9x5g3FfGWE8po95iRp8VMd5TwqGrGJbYJo7jzUXcNqKNnH5rZVrvMG0hXBf7
-        YEc1Bi7g7uxIDZWUjJcMNf5TKuxipLfcL9OXoO8c3CFfBefHHNTHrpuSlIv8zj1d/eexC94atAUfFnHh
-        8w1qH+0m2VIdZ9DcXY0t6DwLz6euI9SCtUwELpny9fnRcfdJnBZAayV8kVdV/Dl6xRRdJnh9a2/gVBn2
-        SQ5UlcJ18xgGN0OaFkl3i+3qjK1ih9i5CYVimyjI+0XNI34D3QOIXG8W52wAAAAASUVORK5CYII=
+        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAABl0RVh0U29m
+        dHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAHZSURBVDhPpdPfS5NRHMfxTzfhXV0lBHXRHzDoPyjw
+        V1QIXtRVF7FIkKgEKYIo15pZ1nRZ5CSxRj/80WxqGQVCjVLmrAuLNkfb1NCcjz26+Zg63T59D4uuBj3S
+        xevqnPc533NxQPK/YORafqP1sAhbHha1HqjLUZutwp5PJpulvrzMqKZxfyBLy4DBP2vWvwcMO+Cg4SOT
+        XmYXu5nRO7kx/5Trc4+ZnvVwbeYBV7+3cWWylb/iLVyZcFM1QrXAezvqVZzRnnAj8YjrPzxMT7dLdD8X
+        xe7R+HaHS+MuJkNOGpFmqkbkJnhnQ4O62Uy8+KWBS+EmqkaegaDA4GU41cgJ/wlOvSzn1IvDnOw/xIm+
+        g4z3HmDcV8ZYTymj3mJGnxUx3lPCoasYltgmjuPNRdw2oo2cfmtlWu8wbSFcF/tgRzUGLuDu7EgNlZSM
+        lww1/lMq7GKkt9wv05eg7xzcIV8F58cc1Meum5KUi/zOPV3957EL3hq0BR8WceHzDWof7SbZUh1n0Nxd
+        jS3oPAvPp64j1IK1TAQumfL1+dFx90mcFkBrJXyRV1X8OXrFFF0meH1rb+BUGfZJDlSVwnXzGAY3Q5oW
+        SXeL7eqMrWKH2LkJhWKbKMj7Rc0jfgPdA4hcbxbnbAAAAABJRU5ErkJggg==
 </value>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
@@ -140,29 +140,29 @@
     <value>Ctrl+O</value>
   </data>
   <data name="mnuOpen.Size" type="System.Drawing.Size, System.Drawing">
-    <value>180, 22</value>
+    <value>161, 22</value>
   </data>
   <data name="mnuOpen.Text" xml:space="preserve">
     <value>Open...</value>
   </data>
   <data name="mnuSaveAs.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
-        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAABdklEQVQ4T6WTv0tCURiGr+Du
-        GDS0ut1FQdBB0E2ahPsf+AuVKygOgiiBU/+IghEpiJUQaYi5OLk5tAQSCCWYCYJv5z1onEJuRh88XPi+
-        933OdDUA/0Kz2WzkTHBhlMuxQ2B22/kSXFYqFSEENr/AYZYdVXBVKpWw3mywWq8tYYZZdlRBs1gs4l0E
-        3pZLS5hhlh1V0CoUCnhdrTCdzy1hhll2VMF1Pp/Hi3jhaTazhBlm2VEFnWw2i+F4jOfFwhJmmGVHFdyZ
-        poloNHoQzLKjCrqpVAputxsul2svvO3I5XIUdFVBPx6Pw+PxYDB4RK/38A3ueDMMA16vF5lMhoK+KhhG
-        IhH4fD50OvdwOp2SZrMt4Y43CgKBANLpNAVDVTCKxWLw+/1oNG7ll9RqDcluR0EoFEIymaRgJAXbORVM
-        dF3/qNdvEAwGJdVqS7LbURAOh5FIJMRfpE1kU8yJQBeYgqndbj/fB28/aAvY1RyCI8HxHxEdzfEJVkMC
-        r1tLkDAAAAAASUVORK5CYII=
+        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAABl0RVh0U29m
+        dHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAF2SURBVDhPpZO/S0JRGIav4O4YNLS63UVB0EHQTZqE
+        +x/4C5UrKA6CKIFT/4iCESmIlRBpiLk4uTm0BBIIJZgJgm/nPWicQm5GHzxc+L73fc50NQD/QrPZbORM
+        cGGUy7FDYHbb+RJcVioVIQQ2v8Bhlh1VcFUqlbDebLBary1hhll2VEGzWCziXQTelktLmGGWHVXQKhQK
+        eF2tMJ3PLWGGWXZUwXU+n8eLeOFpNrOEGWbZUQWdbDaL4XiM58XCEmaYZUcV3JmmiWg0ehDMsqMKuqlU
+        Cm63Gy6Xay+87cjlchR0VUE/Ho/D4/FgMHhEr/fwDe54MwwDXq8XmUyGgr4qGEYiEfh8PnQ693A6nZJm
+        sy3hjjcKAoEA0uk0BUNVMIrFYvD7/Wg0buWX1GoNyW5HQSgUQjKZpGAkBds5FUx0Xf+o128QDAYl1WpL
+        sttREA6HkUgkxF+kTWRTzIlAF5iCqd1uP98Hbz9oC9jVHIIjwfEfER3N8QlWQwKvW0uQMAAAAABJRU5E
+        rkJggg==
 </value>
   </data>
   <data name="mnuSaveAs.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
     <value>Ctrl+S</value>
   </data>
   <data name="mnuSaveAs.Size" type="System.Drawing.Size, System.Drawing">
-    <value>180, 22</value>
+    <value>161, 22</value>
   </data>
   <data name="mnuSaveAs.Text" xml:space="preserve">
     <value>Save as...</value>
@@ -254,6 +254,9 @@
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>650, 489</value>
+  </data>
+  <data name="$this.StartPosition" type="System.Windows.Forms.FormStartPosition, System.Windows.Forms">
+    <value>WindowsDefaultBounds</value>
   </data>
   <data name="&gt;&gt;fileToolStripMenuItem.Name" xml:space="preserve">
     <value>fileToolStripMenuItem</value>
