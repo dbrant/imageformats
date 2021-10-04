@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("ImageFormats")]
-[assembly: AssemblyCopyright("Copyright © Dmitry Brant, 2020")]
+[assembly: AssemblyCopyright("Copyright © Dmitry Brant, 2021")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
