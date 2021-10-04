@@ -148,11 +148,25 @@ namespace DmitryBrant.ImageFormats
             {
                 // Special handling for EGA images that don't contain palette information:
                 // Pre-populate our palette with standard EGA colors.
-                for (int c = 0; c < egaColors.Length; c++)
+                if (numPlanes == 3)
                 {
-                    colorPalette[c * 3] = (byte)((egaColors[c] >> 16) & 0xFF);
-                    colorPalette[c * 3 + 1] = (byte)((egaColors[c] >> 8) & 0xFF);
-                    colorPalette[c * 3 + 2] = (byte)(egaColors[c] & 0xFF);
+                    for (int c = 0; c < 8; c++)
+                    {
+                        colorPalette[c * 3] = (byte)((egaColors[c + 8] >> 16) & 0xFF);
+                        colorPalette[c * 3 + 1] = (byte)((egaColors[c + 8] >> 8) & 0xFF);
+                        colorPalette[c * 3 + 2] = (byte)(egaColors[c + 8] & 0xFF);
+                    }
+                    // Hack: make color 0 black instead of gray.
+                    colorPalette[0] = colorPalette[1] = colorPalette[2] = 0;
+                }
+                else if (numPlanes == 4)
+                {
+                    for (int c = 0; c < 16; c++)
+                    {
+                        colorPalette[c * 3] = (byte)((egaColors[c] >> 16) & 0xFF);
+                        colorPalette[c * 3 + 1] = (byte)((egaColors[c] >> 8) & 0xFF);
+                        colorPalette[c * 3 + 2] = (byte)(egaColors[c] & 0xFF);
+                    }
                 }
             }
 
