@@ -12,11 +12,12 @@ imageformats
 - .MAC (MacPaint)
 - .CUT (Dr. Halo)
 - .XPM (X Window PixMap)
+- .FITS (experimental support)
 - .DICOM (experimental support)
 
-Copyright 2013-2020 Dmitry Brant
+Copyright 2013-2021 Dmitry Brant
 
-http://dmitrybrant.com
+https://dmitrybrant.com
 
 
     Licensed under the Apache License, Version 2.0 (the "License");
