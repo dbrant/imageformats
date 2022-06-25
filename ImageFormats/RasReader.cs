@@ -88,13 +88,13 @@ namespace DmitryBrant.ImageFormats
             {
                 if (imgBpp == 1)
                 {
-                    int dx = 0, dy = 0;
+                    int dx = 0, dy = 0, db = 0;
                     int b, bytePtr = 0;
                     byte val;
                     while (dy < imgHeight)
                     {
                         b = rleReader.ReadByte();
-                        if (b == -1) break;
+                        db++;
                         for (int i = 7; i >= 0; i--)
                         {
                             if ((b & (1 << i)) != 0) val = 0; else val = 255;
@@ -107,6 +107,8 @@ namespace DmitryBrant.ImageFormats
                             if (dx >= imgWidth)
                             {
                                 dx = 0; dy++;
+                                if (db % 2 == 1) rleReader.ReadByte();
+                                db = 0;
                                 break;
                             }
                         }
@@ -187,21 +189,17 @@ namespace DmitryBrant.ImageFormats
                 else if (imgBpp == 24)
                 {
                     int bytePtr = 0;
-                    byte[] scanline = new byte[imgWidth * 3];
                     for (int dy = 0; dy < imgHeight; dy++)
                     {
-                        for (int i = 0; i < imgWidth * 3; i++)
-                            scanline[i] = (byte)rleReader.ReadByte();
-
-                        if ((imgWidth * 3) % 2 == 1) rleReader.ReadByte();
-
                         for (int dx = 0; dx < imgWidth; dx++)
                         {
-                            bmpData[bytePtr++] = scanline[dx * 3];
-                            bmpData[bytePtr++] = scanline[dx * 3 + 1];
-                            bmpData[bytePtr++] = scanline[dx * 3 + 2];
+                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
                             bytePtr++;
                         }
+
+                        if ((imgWidth * 3) % 2 == 1) rleReader.ReadByte();
                     }
                 }
                 else if (imgBpp == 32)
