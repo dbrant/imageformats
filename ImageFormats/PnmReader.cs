@@ -175,6 +175,7 @@ namespace DmitryBrant.ImageFormats
                 else if (pnmType == '4') //monochrome bitmap (binary)
                 {
                     byte pixel, pixelVal;
+                    int x = 0;
                     int elementCount = 0;
                     while (true)
                     {
@@ -187,6 +188,13 @@ namespace DmitryBrant.ImageFormats
                             bmpData[elementCount++] = pixelVal;
                             elementCount++;
                             if (elementCount >= maxElementCount) break;
+                            x++;
+                            if (x >= bmpWidth)
+                            {
+                                // At the end of the current line, disregard any remaining bits of the current byte.
+                                x = 0;
+                                break;
+                            }
                         }
                         if (elementCount >= maxElementCount) break;
                     }
