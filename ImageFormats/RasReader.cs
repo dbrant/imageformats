@@ -104,7 +104,7 @@ namespace DmitryBrant.ImageFormats
                             bytePtr++;
 
                             dx++;
-                            if (dx == imgWidth)
+                            if (dx >= imgWidth)
                             {
                                 dx = 0; dy++;
                                 break;
@@ -193,7 +193,7 @@ namespace DmitryBrant.ImageFormats
                         for (int i = 0; i < imgWidth * 3; i++)
                             scanline[i] = (byte)rleReader.ReadByte();
 
-                        if ((imgWidth * 3) % 2 == 1) stream.ReadByte();
+                        if ((imgWidth * 3) % 2 == 1) rleReader.ReadByte();
 
                         for (int dx = 0; dx < imgWidth; dx++)
                         {
@@ -207,18 +207,14 @@ namespace DmitryBrant.ImageFormats
                 else if (imgBpp == 32)
                 {
                     int bytePtr = 0;
-                    byte[] scanline = new byte[imgWidth * 4];
                     for (int dy = 0; dy < imgHeight; dy++)
                     {
-                        for (int i = 0; i < imgWidth * 4; i++)
-                            scanline[i] = (byte)rleReader.ReadByte();
-
                         for (int dx = 0; dx < imgWidth; dx++)
                         {
-                            bmpData[bytePtr++] = scanline[dx * 4];
-                            bmpData[bytePtr++] = scanline[dx * 4 + 1];
-                            bmpData[bytePtr++] = scanline[dx * 4 + 2];
-                            bmpData[bytePtr++] = scanline[dx * 4 + 3];
+                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
                         }
                     }
                 }
