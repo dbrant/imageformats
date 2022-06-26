@@ -34,6 +34,10 @@ namespace DmitryBrant.ImageFormats
     /// </summary>
     public static class RasReader
     {
+        private const int RAS_TYPE_OLD = 0;
+        private const int RAS_TYPE_STD = 1;
+        private const int RAS_TYPE_RLE = 2;
+        private const int RAS_TYPE_RGB = 3;
 
         /// <summary>
         /// Reads a Sun Raster (.RAS) image from a file.
@@ -67,7 +71,7 @@ namespace DmitryBrant.ImageFormats
             UInt32 mapType = Util.BigEndian(reader.ReadUInt32());
             int mapLength = (int)Util.BigEndian(reader.ReadUInt32());
 
-            RleReader rleReader = new RleReader(stream, rasType == 2);
+            RleReader rleReader = new RleReader(stream, rasType == RAS_TYPE_RLE);
 
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767) || (mapLength > 32767))
                 throw new ApplicationException("This RAS file appears to have invalid dimensions.");
@@ -191,14 +195,27 @@ namespace DmitryBrant.ImageFormats
                     int bytePtr = 0;
                     for (int dy = 0; dy < imgHeight; dy++)
                     {
-                        for (int dx = 0; dx < imgWidth; dx++)
+                        if (rasType == RAS_TYPE_RGB)
                         {
-                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
-                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
-                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
-                            bytePtr++;
+                            for (int dx = 0; dx < imgWidth; dx++)
+                            {
+                                bmpData[bytePtr + 2] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr + 1] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr] = (byte)rleReader.ReadByte();
+                                bytePtr += 4;
+                            }
                         }
-
+                        else
+                        {
+                            for (int dx = 0; dx < imgWidth; dx++)
+                            {
+                                bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                                bytePtr++;
+                            }
+                        }
+                        
                         if ((imgWidth * 3) % 2 == 1) rleReader.ReadByte();
                     }
                 }
@@ -207,12 +224,41 @@ namespace DmitryBrant.ImageFormats
                     int bytePtr = 0;
                     for (int dy = 0; dy < imgHeight; dy++)
                     {
-                        for (int dx = 0; dx < imgWidth; dx++)
+                        if (rasType == RAS_TYPE_RGB)
                         {
-                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
-                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
-                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
-                            bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                            for (int dx = 0; dx < imgWidth; dx++)
+                            {
+                                rleReader.ReadByte();
+                                bmpData[bytePtr + 2] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr + 1] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr] = (byte)rleReader.ReadByte();
+                                bytePtr += 4;
+                            }
+                        }
+                        else
+                        {
+                            for (int dx = 0; dx < imgWidth; dx++)
+                            {
+
+                                // NOTE!
+                                // Some software encoded 32-bit images with incorrect channel order.
+                                // If your 32-bit image looks weird, try changing to this deliberately
+                                // out-of-spec channel order:
+
+                                /*
+                                bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr++] = (byte)rleReader.ReadByte();
+                                bytePtr++;
+                                rleReader.ReadByte();
+                                */
+
+                                rleReader.ReadByte();
+                                bmpData[bytePtr] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr + 1] = (byte)rleReader.ReadByte();
+                                bmpData[bytePtr + 2] = (byte)rleReader.ReadByte();
+                                bytePtr += 4;
+                            }
                         }
                     }
                 }
