@@ -272,8 +272,8 @@ namespace DmitryBrant.ImageFormats
             }
             catch (Exception e)
             {
-                //give a partial image in case of unexpected end-of-file
-                System.Diagnostics.Debug.WriteLine("Error while processing FITS file: " + e.Message);
+                // return a partial image in case of unexpected end-of-file
+                Util.log("Error while processing FITS file: " + e.Message);
             }
 
             if (bmpData == null) { return null; }

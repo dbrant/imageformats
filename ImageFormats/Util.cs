@@ -4,6 +4,11 @@ namespace DmitryBrant.ImageFormats
 {
     public static class Util
     {
+        public static void log(string str)
+        {
+            System.Diagnostics.Debug.WriteLine(str);
+        }
+
         public static UInt16 LittleEndian(UInt16 val)
         {
             return BitConverter.IsLittleEndian ? val : ConvEndian(val);

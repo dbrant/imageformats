@@ -265,8 +265,8 @@ namespace DmitryBrant.ImageFormats
             }
             catch (Exception e)
             {
-                //give a partial image in case of unexpected end-of-file
-                System.Diagnostics.Debug.WriteLine("Error while processing RAS file: " + e.Message);
+                // return a partial image in case of unexpected end-of-file
+                Util.log("Error while processing RAS file: " + e.Message);
             }
 
             Bitmap bmp = new Bitmap(imgWidth, imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);

@@ -256,8 +256,8 @@ namespace DmitryBrant.ImageFormats
             }
             catch (Exception e)
             {
-                //give a partial image in case of unexpected end-of-file
-                System.Diagnostics.Debug.WriteLine("Error while processing PNM file: " + e.Message);
+                // return a partial image in case of unexpected end-of-file
+                Util.log("Error while processing PNM file: " + e.Message);
             }
 
             var bmp = new Bitmap(bmpWidth, bmpHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);

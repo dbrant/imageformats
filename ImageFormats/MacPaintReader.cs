@@ -108,8 +108,8 @@ namespace DmitryBrant.ImageFormats
             }
             catch (Exception e)
             {
-                //give a partial image in case of unexpected end-of-file
-                System.Diagnostics.Debug.WriteLine("Error while processing MacPaint file: " + e.Message);
+                // return a partial image in case of unexpected end-of-file
+                Util.log("Error while processing MacPaint file: " + e.Message);
             }
 
             var bmp = new Bitmap(MAC_PAINT_WIDTH, MAC_PAINT_HEIGHT, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
