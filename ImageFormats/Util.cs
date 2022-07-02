@@ -9,6 +9,11 @@ namespace DmitryBrant.ImageFormats
             System.Diagnostics.Debug.WriteLine(str);
         }
 
+        public static bool TryParseFloat(string str, out float f)
+        {
+            return float.TryParse(str, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out f);
+        }
+
         public static UInt16 LittleEndian(UInt16 val)
         {
             return BitConverter.IsLittleEndian ? val : ConvEndian(val);

@@ -101,17 +101,17 @@ namespace DmitryBrant.ImageFormats
                         else if (parts[0] == "NAXIS3") { int.TryParse(parts[1], out axisLength[2]); }
                         else if (parts[0] == "NAXIS4") { int.TryParse(parts[1], out axisLength[3]); }
                         else if (parts[0] == "NAXIS5") { int.TryParse(parts[1], out axisLength[4]); }
-                        else if (parts[0] == "DATAMIN") { TryParseFloat(parts[1], out dataMin[0]); for (int m = 1; m < dataMin.Length; m++) { dataMin[m] = dataMin[0]; } }
-                        else if (parts[0] == "DATAMAX") { TryParseFloat(parts[1], out dataMax[0]); for (int m = 1; m < dataMax.Length; m++) { dataMax[m] = dataMax[0]; } }
-                        else if (parts[0] == "GOODMIN") { TryParseFloat(parts[1], out dataMin[0]); for (int m = 1; m < dataMin.Length; m++) { dataMin[m] = dataMin[0]; } }
-                        else if (parts[0] == "GOODMAX") { TryParseFloat(parts[1], out dataMax[0]); for (int m = 1; m < dataMax.Length; m++) { dataMax[m] = dataMax[0]; } }
-                        else if (parts[0] == "DATAMEAN") { TryParseFloat(parts[1], out dataMean); }
-                        else if (parts[0] == "SI-LMIN1") { TryParseFloat(parts[1], out dataMin[0]); }
-                        else if (parts[0] == "SI-LMAX1") { TryParseFloat(parts[1], out dataMax[0]); }
-                        else if (parts[0] == "SI-LMIN2") { TryParseFloat(parts[1], out dataMin[1]); }
-                        else if (parts[0] == "SI-LMAX2") { TryParseFloat(parts[1], out dataMax[1]); }
-                        else if (parts[0] == "SI-LMIN3") { TryParseFloat(parts[1], out dataMin[2]); }
-                        else if (parts[0] == "SI-LMAX3") { TryParseFloat(parts[1], out dataMax[2]); }
+                        else if (parts[0] == "DATAMIN") { Util.TryParseFloat(parts[1], out dataMin[0]); for (int m = 1; m < dataMin.Length; m++) { dataMin[m] = dataMin[0]; } }
+                        else if (parts[0] == "DATAMAX") { Util.TryParseFloat(parts[1], out dataMax[0]); for (int m = 1; m < dataMax.Length; m++) { dataMax[m] = dataMax[0]; } }
+                        else if (parts[0] == "GOODMIN") { Util.TryParseFloat(parts[1], out dataMin[0]); for (int m = 1; m < dataMin.Length; m++) { dataMin[m] = dataMin[0]; } }
+                        else if (parts[0] == "GOODMAX") { Util.TryParseFloat(parts[1], out dataMax[0]); for (int m = 1; m < dataMax.Length; m++) { dataMax[m] = dataMax[0]; } }
+                        else if (parts[0] == "DATAMEAN") { Util.TryParseFloat(parts[1], out dataMean); }
+                        else if (parts[0] == "SI-LMIN1") { Util.TryParseFloat(parts[1], out dataMin[0]); }
+                        else if (parts[0] == "SI-LMAX1") { Util.TryParseFloat(parts[1], out dataMax[0]); }
+                        else if (parts[0] == "SI-LMIN2") { Util.TryParseFloat(parts[1], out dataMin[1]); }
+                        else if (parts[0] == "SI-LMAX2") { Util.TryParseFloat(parts[1], out dataMax[1]); }
+                        else if (parts[0] == "SI-LMIN3") { Util.TryParseFloat(parts[1], out dataMin[2]); }
+                        else if (parts[0] == "SI-LMAX3") { Util.TryParseFloat(parts[1], out dataMax[2]); }
                     }
                     catch
                     {
@@ -340,11 +340,6 @@ namespace DmitryBrant.ImageFormats
                 }
                 return 0;
             }
-        }
-
-        private static bool TryParseFloat(string str, out float f)
-        {
-            return float.TryParse(str, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out f);
         }
     }
 }
