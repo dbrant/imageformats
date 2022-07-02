@@ -6,24 +6,20 @@ namespace DmitryBrant.ImageFormats
     {
         public static UInt16 LittleEndian(UInt16 val)
         {
-            if (BitConverter.IsLittleEndian) return val;
-            return ConvEndian(val);
+            return BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
         public static UInt32 LittleEndian(UInt32 val)
         {
-            if (BitConverter.IsLittleEndian) return val;
-            return ConvEndian(val);
+            return BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
 
         public static UInt16 BigEndian(UInt16 val)
         {
-            if (!BitConverter.IsLittleEndian) return val;
-            return ConvEndian(val);
+            return !BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
         public static UInt32 BigEndian(UInt32 val)
         {
-            if (!BitConverter.IsLittleEndian) return val;
-            return ConvEndian(val);
+            return !BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
 
         private static UInt16 ConvEndian(UInt16 val)
