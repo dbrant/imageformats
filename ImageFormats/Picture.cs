@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.IO;
+using System.Text;
 
 /*
 
@@ -110,15 +111,18 @@ namespace DmitryBrant.ImageFormats
             }
             else if ((header[0] == 'F') && (header[1] == 'O') && (header[2] == 'R') && (header[3] == 'M'))
             {
-                if (((header[8] == 'I') && (header[9] == 'L') && (header[10] == 'B') && (header[11] == 'M'))
-                    || ((header[8] == 'P') && (header[9] == 'B') && (header[10] == 'M')))
+                string iffType = Encoding.ASCII.GetString(header, 8, 4);
+                if (iffType == "ILBM" || iffType.StartsWith("PBM"))
                 {
                     bmp = IffIlbmReader.Load(stream);
                 }
-                else if (((header[8] == 'D') && (header[9] == 'E') && (header[10] == 'E') && (header[11] == 'P'))
-                    || ((header[8] == 'T') && (header[9] == 'V') && (header[10] == 'P') && (header[11] == 'P')))
+                else if (iffType == "DEEP" || iffType == "TVPP")
                 {
                     bmp = IffDeepReader.Load(stream);
+                }
+                else if (iffType == "RGBN" || iffType == "RGB8")
+                {
+                    bmp = IffRgbnReader.Load(stream);
                 }
             }
             else if ((header[0] == 'S') && (header[1] >= 'I') && (header[2] >= 'M') && (header[3] >= 'P'))

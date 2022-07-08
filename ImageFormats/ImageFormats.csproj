@@ -40,6 +40,7 @@
     <Compile Include="FitsReader.cs" />
     <Compile Include="IffDeepReader.cs" />
     <Compile Include="IffIlbmReader.cs" />
+    <Compile Include="IffRgbnReader.cs" />
     <Compile Include="MacPaintReader.cs" />
     <Compile Include="Picture.cs" />
     <Compile Include="PcxReader.cs" />

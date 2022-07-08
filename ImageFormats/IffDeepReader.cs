@@ -34,7 +34,7 @@ namespace DmitryBrant.ImageFormats
     {
 
         /// <summary>
-        /// Reads an DEEP image from a file.
+        /// Reads a DEEP image from a file.
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
@@ -47,7 +47,7 @@ namespace DmitryBrant.ImageFormats
         }
 
         /// <summary>
-        /// Reads an DEEP image from a stream.
+        /// Reads a DEEP image from a stream.
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
@@ -212,6 +212,10 @@ namespace DmitryBrant.ImageFormats
                             }
                         }
                     }
+                }
+                else
+                {
+                    throw new ApplicationException("Invalid compression type.");
                 }
             }
             catch (Exception e)
