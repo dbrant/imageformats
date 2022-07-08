@@ -1,7 +1,5 @@
-﻿using System;
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
-using System.Text;
 
 /*
 
@@ -114,6 +112,11 @@ namespace DmitryBrant.ImageFormats
                 && (((header[8] == 'I') && (header[9] == 'L') && (header[10] == 'B') && (header[11] == 'M')) || ((header[8] == 'P') && (header[9] == 'B') && (header[10] == 'M'))))
             {
                 bmp = IlbmReader.Load(stream);
+            }
+            else if ((header[0] == 'F') && (header[1] == 'O') && (header[2] == 'R') && (header[3] == 'M')
+                && (header[8] == 'D') && (header[9] == 'E') && (header[10] == 'E') && (header[11] == 'P'))
+            {
+                bmp = DeepReader.Load(stream);
             }
             else if ((header[0] == 'S') && (header[1] >= 'I') && (header[2] >= 'M') && (header[3] >= 'P'))
             {
