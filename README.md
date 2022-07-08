@@ -12,10 +12,11 @@ imageformats
 - .MAC (MacPaint)
 - .CUT (Dr. Halo)
 - .XPM (X Window PixMap)
+- .DEEP (TVPaint IFF DEEP images)
 - .FITS (experimental support)
 - .DICOM (experimental support)
 
-Copyright 2013-2021 Dmitry Brant
+Copyright 2013-2022 Dmitry Brant
 
 https://dmitrybrant.com
 
