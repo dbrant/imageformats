@@ -114,7 +114,7 @@ namespace DmitryBrant.ImageFormats
                 bmp = IlbmReader.Load(stream);
             }
             else if ((header[0] == 'F') && (header[1] == 'O') && (header[2] == 'R') && (header[3] == 'M')
-                && (header[8] == 'D') && (header[9] == 'E') && (header[10] == 'E') && (header[11] == 'P'))
+                && (((header[8] == 'D') && (header[9] == 'E') && (header[10] == 'E') && (header[11] == 'P')) || ((header[8] == 'T') && (header[9] == 'V') && (header[10] == 'P') && (header[11] == 'P'))))
             {
                 bmp = DeepReader.Load(stream);
             }

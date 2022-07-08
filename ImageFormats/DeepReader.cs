@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 /*
 
-Decoder for IFF (FORM-based) images.
+Decoder for IFF DEEP (TV Paint) images.
 
 Copyright 2022 Dmitry Brant
 https://dmitrybrant.com
@@ -75,10 +75,7 @@ namespace DmitryBrant.ImageFormats
 
             stream.Read(tempBytes, 0, 4);
             string fileType = Encoding.ASCII.GetString(tempBytes, 0, 4);
-            if (fileType != "DEEP") { throw new ApplicationException("This is not a valid DEEP file."); }
-
-            byte[] palette = null;
-            var rowPalette = new List<byte[]>();
+            if (fileType != "DEEP" && fileType != "TVPP") { throw new ApplicationException("This is not a valid DEEP file."); }
 
             while (stream.Position < stream.Length)
             {
@@ -86,7 +83,7 @@ namespace DmitryBrant.ImageFormats
                 string chunkName = Encoding.ASCII.GetString(tempBytes, 0, 4);
                 chunkSize = Util.BigEndian(reader.ReadUInt32());
 
-                //if (chunkSize % 2 > 0) { chunkSize++; }
+                // if (chunkSize % 2 > 0) { chunkSize++; }
 
                 if (chunkName == "DBOD")
                 {
@@ -152,6 +149,7 @@ namespace DmitryBrant.ImageFormats
                     {
                         for (int x = 0; x < imgWidth; x++)
                         {
+                            // TODO: handle non-8-bit element lengths?
                             if (numElements == 3)
                             {
                                 bmpData[4 * (y * imgWidth + x) + 2] = bodyChunk[ptr++];
@@ -168,73 +166,53 @@ namespace DmitryBrant.ImageFormats
                             }
                         }
                     }
-
-
-
-
-
-
-
-
                 }
                 else if (compressionType == 5)
                 {
-
-
-
-
-
                     int scanLineSize = imgWidth;
-
-                    byte[] uncompressed = new byte[bmpData.Length * 2];
-
-
-
+                    byte[] uncompressed = new byte[scanLineSize * 2];
                     int pos = 0;
-
-
+                    
                     for (int y = 0; y < imgHeight; y++)
                     {
-
-
-                        int d;
-                        int v = 0;
-
-                        for (int i = 0; i < scanLineSize; i++)
+                        for (int e = 0; e < numElements; e++)
                         {
-                            d = bodyChunk[pos >> 1];
-                            if ((pos++ & 0x1) != 0) d &= 0xF;
-                            else d >>= 4;
-                            v += tvdcTable[d];
-                            uncompressed[i] = (byte)v;
-                            if (tvdcTable[d] == 0)
+                            int d = 0;
+                            int v = 0;
+
+                            for (int i = 0; i < scanLineSize; i++)
                             {
                                 d = bodyChunk[pos >> 1];
-                                if ((pos++ & 0x1) != 0) d &= 0xf;
+                                if ((pos++ & 1) != 0) d &= 0xF;
                                 else d >>= 4;
-                                while (d-- > 0) uncompressed[++i] = (byte)v;
+                                v += tvdcTable[d];
+                                uncompressed[i] = (byte)v;
+                                if (tvdcTable[d] == 0)
+                                {
+                                    d = bodyChunk[pos >> 1];
+                                    if ((pos++ & 1) != 0) d &= 0xF;
+                                    else d >>= 4;
+                                    while (d-- != 0) uncompressed[++i] = (byte)v;
+                                }
+                            }
+
+                            if (pos % 2 != 0) pos++;
+
+                            // TODO: handle non-8-bit element lengths?
+                            for (int x = 0; x < imgWidth; x++)
+                            {
+                                if (e < 3)
+                                {
+                                    bmpData[4 * (y * imgWidth + x) + (2 - e)] = uncompressed[x];
+                                }
+                                else
+                                {
+                                    bmpData[4 * (y * imgWidth + x) + e] = uncompressed[x];
+                                }
                             }
                         }
-
-                        pos = (pos + 1) / 2;
-
-                        int xx = 0;
-                        for (int x = 0; x < imgWidth; x++)
-                        {
-                            bmpData[4 * (y * imgWidth + x)] = uncompressed[xx];
-                            bmpData[4 * (y * imgWidth + x) + 1] = uncompressed[xx];
-                            bmpData[4 * (y * imgWidth + x) + 2] = uncompressed[xx];
-                            bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
-                            xx++;
-                        }
-
-
                     }
-
-
                 }
-
-
             }
             catch (Exception e)
             {

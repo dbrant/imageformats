@@ -38,7 +38,7 @@
     <Compile Include="CutReader.cs" />
     <Compile Include="DicomReader.cs" />
     <Compile Include="FitsReader.cs" />
-    <Compile Include="IffReader.cs" />
+    <Compile Include="DeepReader.cs" />
     <Compile Include="IlbmReader.cs" />
     <Compile Include="MacPaintReader.cs" />
     <Compile Include="Picture.cs" />
