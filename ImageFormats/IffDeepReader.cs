@@ -30,7 +30,7 @@ namespace DmitryBrant.ImageFormats
     /// <summary>
     /// Handles reading TVPaint DEEP images.
     /// </summary>
-    public static class DeepReader
+    public static class IffDeepReader
     {
 
         /// <summary>

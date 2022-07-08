@@ -108,15 +108,18 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = MacPaintReader.Load(stream);
             }
-            else if ((header[0] == 'F') && (header[1] == 'O') && (header[2] == 'R') && (header[3] == 'M')
-                && (((header[8] == 'I') && (header[9] == 'L') && (header[10] == 'B') && (header[11] == 'M')) || ((header[8] == 'P') && (header[9] == 'B') && (header[10] == 'M'))))
+            else if ((header[0] == 'F') && (header[1] == 'O') && (header[2] == 'R') && (header[3] == 'M'))
             {
-                bmp = IlbmReader.Load(stream);
-            }
-            else if ((header[0] == 'F') && (header[1] == 'O') && (header[2] == 'R') && (header[3] == 'M')
-                && (((header[8] == 'D') && (header[9] == 'E') && (header[10] == 'E') && (header[11] == 'P')) || ((header[8] == 'T') && (header[9] == 'V') && (header[10] == 'P') && (header[11] == 'P'))))
-            {
-                bmp = DeepReader.Load(stream);
+                if (((header[8] == 'I') && (header[9] == 'L') && (header[10] == 'B') && (header[11] == 'M'))
+                    || ((header[8] == 'P') && (header[9] == 'B') && (header[10] == 'M')))
+                {
+                    bmp = IffIlbmReader.Load(stream);
+                }
+                else if (((header[8] == 'D') && (header[9] == 'E') && (header[10] == 'E') && (header[11] == 'P'))
+                    || ((header[8] == 'T') && (header[9] == 'V') && (header[10] == 'P') && (header[11] == 'P')))
+                {
+                    bmp = IffDeepReader.Load(stream);
+                }
             }
             else if ((header[0] == 'S') && (header[1] >= 'I') && (header[2] >= 'M') && (header[3] >= 'P'))
             {
