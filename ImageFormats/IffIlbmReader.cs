@@ -58,6 +58,7 @@ namespace DmitryBrant.ImageFormats
 
             int numPlanes = -1;
             int totalColors = 0;
+            int numColorBits = 0;
             int maskType = 0;
             int compressionType = 0;
             int transparentColor = 0;
@@ -139,12 +140,34 @@ namespace DmitryBrant.ImageFormats
                     {
                         totalColors = numColorsInChunk;
                     }
+                    numColorBits = 0;
+                    while (totalColors > (1 << numColorBits)) numColorBits++;
                     palette = new byte[chunkSize];
                     for (int c = 0; c < chunkSize; c++)
                     {
                         palette[c] = tempBytes[c];
                     }
-                    // TODO: scale color map if necessary.
+
+                    // Check if we need to upscale the color values
+                    var scaleMask = (1 << numColorBits) - 1;
+                    bool scaled = false;
+                    for (var i = 0; i < palette.Length; i++)
+                    {
+                        var value = palette[i];
+                        if ((value & scaleMask) != 0)
+                        {
+                            scaled = true;
+                            break;
+                        }
+                    }
+                    if (!scaled)
+                    {
+                        for (var i = 0; i < palette.Length; i++)
+                        {
+                            var val = palette[i] >> (8 - numColorBits);
+                            palette[i] = (byte)extendTo8Bits(val, numColorBits);
+                        }
+                    }
                 }
                 else if (chunkName == "CAMG")
                 {
@@ -226,15 +249,15 @@ namespace DmitryBrant.ImageFormats
 
             if (!haveCAMG)
             {
-                if (totalColors == 16 && numPlanes == 6)
+                // Fall back to some defaults if we didn't get a CAMG chunk...
+                if (numPlanes == 6 && numColorBits == 4)
                 {
-                    // Even though we didn't get a CAMG chunk, this is extremely likely to be
-                    // a HAM image, so default to it.
+                    // If there's exactly two more bitplanes than color bits, then it's very likely to be a HAM image.
                     modeHAM = true;
                 }
-                else if (totalColors < (1 << numPlanes))
+                else if (numColorBits > 0 && numColorBits < numPlanes)
                 {
-                    // If there are more bit planes than color bits, then it's likely to be halfBrite.
+                    // More generally, if there's more bitplanes than color bits, then it's likely halfBrite.
                     modeHalfBrite = true;
                 }
             }
@@ -242,14 +265,21 @@ namespace DmitryBrant.ImageFormats
             if (modeHalfBrite)
             {
                 halfBriteBit = 1 << (numPlanes - 1);
-                if ((1 << numPlanes) == totalColors)
+                if (numColorBits == numPlanes)
                 {
-                    // Cull the color palette if we have halfBrite mode, but too many colors
-                    // exist in the CMAP.
+                    // Cull the color palette if we have halfBrite mode but too many colors in CMAP.
+                    numColorBits--;
                     totalColors >>= 1;
                 }
             }
-            // TODO: cull cmap for HAM mode?
+
+            if (modeHAM && numColorBits > (numPlanes - 2))
+            {
+                // Cull the color palette if we have HAM mode but too many colors in CMAP.
+                var delta = numColorBits - numPlanes + 2;
+                numColorBits -= delta;
+                totalColors >>= delta;
+            }
 
             ByteRun1Decoder decompressor = new ByteRun1Decoder(stream);
             byte[] bmpData = new byte[(imgWidth + 1) * 4 * imgHeight];
@@ -320,8 +350,7 @@ namespace DmitryBrant.ImageFormats
                     }
                     else if (modeHAM)
                     {
-                        int hamShift = numPlanes - 2;
-                        int valMask = (1 << hamShift) - 1;
+                        int hamShift = numColorBits;
                         int valShift = 8 - hamShift;
                         int hamVal;
                         byte[] pal = palette;
@@ -341,7 +370,7 @@ namespace DmitryBrant.ImageFormats
                         {
                             index = (int)imageLine[x];
                             hamVal = (index >> hamShift) & 0x3;
-                            index &= valMask;
+                            index %= totalColors;
 
                             if (maskType == 2 && index == transparentColor)
                             {
@@ -360,27 +389,20 @@ namespace DmitryBrant.ImageFormats
                                 }
                                 else if (hamVal == 2)
                                 {
-                                    prevR = (index << valShift) | index;
+                                    prevR = extendTo8Bits(index, numColorBits); // (index << valShift) | index;
                                 }
                                 else if (hamVal == 1)
                                 {
-                                    prevB = (index << valShift) | index;
+                                    prevB = extendTo8Bits(index, numColorBits); // (index << valShift) | index;
                                 }
                                 else if (hamVal == 3)
                                 {
-                                    prevG = (index << valShift) | index;
+                                    prevG = extendTo8Bits(index, numColorBits); // (index << valShift) | index;
                                 }
                                 bmpData[4 * (y * imgWidth + x)] = (byte)prevB;
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)prevG;
                                 bmpData[4 * (y * imgWidth + x) + 2] = (byte)prevR;
                                 bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
-
-                                if (modeHalfBrite)
-                                {
-                                    bmpData[4 * (y * imgWidth + x)] >>= 1;
-                                    bmpData[4 * (y * imgWidth + x) + 1] >>= 1;
-                                    bmpData[4 * (y * imgWidth + x) + 2] >>= 1;
-                                }
                             }
                         }
                     }
@@ -456,6 +478,16 @@ namespace DmitryBrant.ImageFormats
             System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, imgWidth * 4 * imgHeight);
             bmp.UnlockBits(bmpBits);
             return bmp;
+        }
+
+        private static int extendTo8Bits(int value, int bits)
+        {
+            var result = 0;
+            for (var s = 8 - bits; s >= 0; s -= bits)
+            {
+                result |= value << s;
+            }
+            return result;
         }
 
         private class BitPlaneReader
