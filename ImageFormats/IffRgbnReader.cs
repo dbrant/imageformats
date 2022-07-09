@@ -115,7 +115,33 @@ namespace DmitryBrant.ImageFormats
 
             try
             {
-                if (compressionType == 4)
+                if (compressionType == 3)
+                {
+                    int ptr = 0;
+                    for (int y = 0; y < imgHeight; y++)
+                    {
+                        for (int x = 0; x < imgWidth; x++)
+                        {
+                            stream.Read(tempBytes, 0, 4);
+                            uint val = Util.BigEndian(BitConverter.ToUInt32(tempBytes, 0));
+
+                            if (isRgb8)
+                            {
+                                bmpData[4 * (y * imgWidth + x)] = (byte)((val >> 8) & 0xFF);
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)((val >> 16) & 0xFF);
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)((val >> 24) & 0xFF);
+                            }
+                            else
+                            {
+                                bmpData[4 * (y * imgWidth + x)] = (byte)(((val >> 4) & 0xF) * 17);
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)(((val >> 8) & 0xF) * 17);
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)(((val >> 12) & 0xF) * 17);
+                            }
+                            bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                        }
+                    }
+                }
+                else if (compressionType == 4)
                 {
                     var decoder = new RgbnDecoder(stream, isRgb8);
 
