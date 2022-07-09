@@ -224,11 +224,19 @@ namespace DmitryBrant.ImageFormats
                 throw new ApplicationException("ILBM images with mask plane not yet implemented.");
             }
 
-            if (!haveCAMG && totalColors == 16 && numPlanes == 6)
+            if (!haveCAMG)
             {
-                // Even though we didn't get a CAMG chunk, this is extremely likely to be
-                // a HAM image, so default to it.
-                modeHAM = true;
+                if (totalColors == 16 && numPlanes == 6)
+                {
+                    // Even though we didn't get a CAMG chunk, this is extremely likely to be
+                    // a HAM image, so default to it.
+                    modeHAM = true;
+                }
+                else if (totalColors < (1 << numPlanes))
+                {
+                    // If there are more bit planes than color bits, then it's likely to be halfBrite.
+                    modeHalfBrite = true;
+                }
             }
 
             if (modeHalfBrite)
