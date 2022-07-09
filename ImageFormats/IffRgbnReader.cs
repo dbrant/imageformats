@@ -134,9 +134,9 @@ namespace DmitryBrant.ImageFormats
                             }
                             else
                             {
-                                bmpData[4 * (y * imgWidth + x)] = (byte)((val & 0xF) * 16);
-                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)(((val >> 4) & 0xF) * 16);
-                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)(((val >> 8) & 0xF) * 16);
+                                bmpData[4 * (y * imgWidth + x)] = (byte)((val & 0xF) * 17);
+                                bmpData[4 * (y * imgWidth + x) + 1] = (byte)(((val >> 4) & 0xF) * 17);
+                                bmpData[4 * (y * imgWidth + x) + 2] = (byte)(((val >> 8) & 0xF) * 17);
                             }
                             bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
                         }
