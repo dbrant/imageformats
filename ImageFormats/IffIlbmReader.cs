@@ -94,15 +94,11 @@ namespace DmitryBrant.ImageFormats
             byte[] palette = null;
             var rowPalette = new List<byte[]>();
 
-            while (stream.Position < stream.Length)
+            while (stream.Position < (stream.Length - 8))
             {
                 stream.Read(tempBytes, 0, 4);
                 string chunkName = Encoding.ASCII.GetString(tempBytes, 0, 4);
                 chunkSize = Util.BigEndian(reader.ReadUInt32());
-
-                // The spec says that chunks should be aligned to word boundaries, but I've seen images
-                // in the wild that don't do that, so checking for this seems unnecessary.
-                // if (chunkSize % 2 > 0) { chunkSize++; }
 
                 if (chunkName == "BODY")
                 {
@@ -116,6 +112,15 @@ namespace DmitryBrant.ImageFormats
                 else
                 {
                     stream.Seek(chunkSize, SeekOrigin.Current);
+                }
+
+                if (chunkSize % 2 > 0)
+                {
+                    // The spec says that chunks should be aligned to word boundaries, but I've seen images
+                    // in the wild that don't do that, so let's check the supposed pad byte, and if it's
+                    // nonzero, then rewind and continue treating it as valid data.
+                    int padByte = stream.ReadByte();
+                    if (padByte != 0) { stream.Seek(-1, SeekOrigin.Current); }
                 }
 
                 if (chunkName == "BMHD")
