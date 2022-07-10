@@ -364,20 +364,16 @@ namespace DmitryBrant.ImageFormats
                 {
                     int bytesPerLine = bytesPerBitPlane;
                     int bytesPerPlane = bytesPerLine * imgHeight;
-                    if (bytesPerPlane % 2 == 1) bytesPerPlane++;
 
                     byte[] planeBytes = new byte[bytesPerPlane];
 
                     for (int b = 0; b < numPlanes; b++)
                     {
-                        if (compressionType == 0)
-                        {
-                            stream.Read(planeBytes, 0, planeBytes.Length);
-                        }
-                        else if (compressionType == 1)
-                        {
-                            decompressor.ReadNextBytes(planeBytes, planeBytes.Length);
-                        }
+                        // The compression type doesn't seem to matter for ACBM images?
+                        // if (compressionType == 0)
+                        // {
+                        stream.Read(planeBytes, 0, planeBytes.Length);
+                        // }
                         for (int y = 0; y < imgHeight; y++)
                         {
                             var bp = new BitPlaneReader(planeBytes, y * bytesPerLine);
