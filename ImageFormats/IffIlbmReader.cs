@@ -68,6 +68,7 @@ namespace DmitryBrant.ImageFormats
             bool haveSHAM = false;
             bool modeShamLaced = false;
             bool modePbm = false;
+            bool modeAcbm = false;
             bool modeHalfBrite = false;
             int halfBriteBit = 0;
             bool modeHAM = false;
@@ -85,11 +86,9 @@ namespace DmitryBrant.ImageFormats
 
             stream.Read(tempBytes, 0, 4);
             string fileType = Encoding.ASCII.GetString(tempBytes, 0, 4);
-            if (fileType != "ILBM" && fileType != "PBM ") { throw new ApplicationException("This is not a valid ILBM file."); }
-            if (fileType == "PBM ")
-            {
-                modePbm = true;
-            }
+            if (fileType != "ILBM" && !fileType.StartsWith("PBM") && fileType != "ACBM") { throw new ApplicationException("This is not a valid ILBM file."); }
+            if (fileType.StartsWith("PBM")) { modePbm = true; }
+            else if (fileType == "ACBM") { modeAcbm = true; }
 
             byte[] palette = null;
             var rowPalette = new List<byte[]>();
@@ -100,7 +99,7 @@ namespace DmitryBrant.ImageFormats
                 string chunkName = Encoding.ASCII.GetString(tempBytes, 0, 4);
                 chunkSize = Util.BigEndian(reader.ReadUInt32());
 
-                if (chunkName == "BODY")
+                if (chunkName == "BODY" || chunkName == "ABIT")
                 {
                     bodyChunkPosition = stream.Position;
                 }
@@ -351,53 +350,88 @@ namespace DmitryBrant.ImageFormats
             try
             {
                 int bytesPerBitPlane = ((imgWidth + 15) / 16) * 2;
-                int bytesPerLine = (modePbm && numPlanes == 8) ? imgWidth : bytesPerBitPlane * numPlanes;
-                if (bytesPerLine % 2 == 1) bytesPerLine++;
 
                 // TODO: account for mask data?
 
-                byte[] scanLine = new byte[bytesPerLine];
-                uint[] imageLine = new uint[imgWidth];
-
+                uint[][] imageLines = new uint[imgHeight][];
                 for (int y = 0; y < imgHeight; y++)
                 {
-                    Array.Clear(imageLine, 0, imageLine.Length);
+                    imageLines[y] = new uint[imgWidth];
+                    Array.Clear(imageLines[y], 0, imageLines[y].Length);
+                }
 
-                    if (compressionType == 0)
-                    {
-                        stream.Read(scanLine, 0, scanLine.Length);
-                    }
-                    else if (compressionType == 1)
-                    {
-                        decompressor.ReadNextBytes(scanLine, bytesPerLine);
-                    }
+                if (modeAcbm)
+                {
+                    int bytesPerLine = bytesPerBitPlane;
+                    if (bytesPerLine % 2 == 1) bytesPerLine++;
+                    byte[] scanLine = new byte[bytesPerLine];
 
-                    if (modePbm)
+                    for (int b = 0; b < numPlanes; b++)
                     {
-                        if (numPlanes == 8)
+                        for (int y = 0; y < imgHeight; y++)
                         {
+                            if (compressionType == 0)
+                            {
+                                stream.Read(scanLine, 0, scanLine.Length);
+                            }
+                            else if (compressionType == 1)
+                            {
+                                decompressor.ReadNextBytes(scanLine, bytesPerLine);
+                            }
+                            var bp = new BitPlaneReader(scanLine, 0);
                             for (int x = 0; x < imgWidth; x++)
                             {
-                                imageLine[x] = scanLine[x];
+                                imageLines[y][x] |= (uint)bp.NextBit() << b;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int bytesPerLine = (modePbm && numPlanes == 8) ? imgWidth : bytesPerBitPlane * numPlanes;
+                    if (bytesPerLine % 2 == 1) bytesPerLine++;
+                    byte[] scanLine = new byte[bytesPerLine];
+
+                    for (int y = 0; y < imgHeight; y++)
+                    {
+                        if (compressionType == 0)
+                        {
+                            stream.Read(scanLine, 0, scanLine.Length);
+                        }
+                        else if (compressionType == 1)
+                        {
+                            decompressor.ReadNextBytes(scanLine, bytesPerLine);
+                        }
+                        if (modePbm)
+                        {
+                            if (numPlanes == 8)
+                            {
+                                for (int x = 0; x < imgWidth; x++)
+                                {
+                                    imageLines[y][x] = scanLine[x];
+                                }
+                            }
+                            else
+                            {
+                                throw new ApplicationException("Unsupported bit width: " + numPlanes);
                             }
                         }
                         else
                         {
-                            throw new ApplicationException("Unsupported bit width: " + numPlanes);
-                        }
-                    }
-                    else
-                    {
-                        for (int b = 0; b < numPlanes; b++)
-                        {
-                            var bp = new BitPlaneReader(scanLine, bytesPerBitPlane * b);
-                            for (int x = 0; x < imgWidth; x++)
+                            for (int b = 0; b < numPlanes; b++)
                             {
-                                imageLine[x] |= (uint)bp.NextBit() << b;
+                                var bp = new BitPlaneReader(scanLine, bytesPerBitPlane * b);
+                                for (int x = 0; x < imgWidth; x++)
+                                {
+                                    imageLines[y][x] |= (uint)bp.NextBit() << b;
+                                }
                             }
                         }
                     }
+                }
 
+                for (int y = 0; y < imgHeight; y++)
+                {
                     int prevR = 0, prevG = 0, prevB = 0;
                     int index;
 
@@ -407,9 +441,9 @@ namespace DmitryBrant.ImageFormats
                     {
                         for (int x = 0; x < imgWidth; x++)
                         {
-                            bmpData[4 * (y * imgWidth + x)] = (byte)((imageLine[x] >> 16) & 0xFF);
-                            bmpData[4 * (y * imgWidth + x) + 1] = (byte)((imageLine[x] >> 8) & 0xFF);
-                            bmpData[4 * (y * imgWidth + x) + 2] = (byte)(imageLine[x] & 0xFF);
+                            bmpData[4 * (y * imgWidth + x)] = (byte)((imageLines[y][x] >> 16) & 0xFF);
+                            bmpData[4 * (y * imgWidth + x) + 1] = (byte)((imageLines[y][x] >> 8) & 0xFF);
+                            bmpData[4 * (y * imgWidth + x) + 2] = (byte)(imageLines[y][x] & 0xFF);
                             bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
                         }
                     }
@@ -433,7 +467,7 @@ namespace DmitryBrant.ImageFormats
 
                         for (int x = 0; x < imgWidth; x++)
                         {
-                            index = (int)imageLine[x];
+                            index = (int)imageLines[y][x];
                             hamVal = (index >> hamShift) & 0x3;
                             index %= totalColors;
 
@@ -481,7 +515,7 @@ namespace DmitryBrant.ImageFormats
 
                         for (int x = 0; x < imgWidth; x++)
                         {
-                            index = (int)imageLine[x];
+                            index = (int)imageLines[y][x];
 
                             /*
                              * Uncomment if you would like the transparent color to become actually transparent.
