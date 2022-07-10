@@ -51,7 +51,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(Stream stream)
+        public static Bitmap Load(Stream stream, bool wantOpacity = false)
         {
             int imgWidth = -1;
             int imgHeight = -1;
@@ -162,7 +162,7 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * imgWidth + x) + 2] = bodyChunk[ptr++];
                                 bmpData[4 * (y * imgWidth + x) + 1] = bodyChunk[ptr++];
                                 bmpData[4 * (y * imgWidth + x)] = bodyChunk[ptr++];
-                                bmpData[4 * (y * imgWidth + x) + 3] = bodyChunk[ptr++];
+                                bmpData[4 * (y * imgWidth + x) + 3] = wantOpacity ? bodyChunk[ptr] : (byte)0xFF; ptr++;
                             }
                         }
                     }
@@ -249,7 +249,7 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * imgWidth + x) + 2] = uncompressed[uptr++];
                                 bmpData[4 * (y * imgWidth + x) + 1] = uncompressed[uptr++];
                                 bmpData[4 * (y * imgWidth + x)] = uncompressed[uptr++];
-                                bmpData[4 * (y * imgWidth + x) + 3] = uncompressed[uptr++];
+                                bmpData[4 * (y * imgWidth + x) + 3] = wantOpacity ? uncompressed[uptr] : (byte)0xFF; uptr++;
                             }
                         }
                     }
@@ -294,7 +294,7 @@ namespace DmitryBrant.ImageFormats
                                 }
                                 else
                                 {
-                                    bmpData[4 * (y * imgWidth + x) + e] = uncompressed[x];
+                                    bmpData[4 * (y * imgWidth + x) + e] = wantOpacity ? uncompressed[x] : (byte)0xFF;
                                 }
                             }
                         }
