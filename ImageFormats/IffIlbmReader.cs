@@ -94,6 +94,8 @@ namespace DmitryBrant.ImageFormats
             byte[] palette = null;
             var rowPalette = new List<byte[]>();
 
+            byte[] beamData = null;
+
             while (stream.Position < stream.Length)
             {
                 stream.Read(tempBytes, 0, 4);
@@ -239,6 +241,14 @@ namespace DmitryBrant.ImageFormats
                     // WORD xdpi;
                     // WORD ydpi;
                 }
+                else if (chunkName == "BEAM")
+                {
+                    beamData = new byte[chunkSize];
+                    for (int c = 0; c < chunkSize; c++)
+                    {
+                        beamData[c] = tempBytes[c];
+                    }
+                }
             }
 
             if (imgWidth == -1 || imgHeight == -1 || (numPlanes > 12 && numPlanes != 24 && numPlanes != 32))
@@ -291,7 +301,8 @@ namespace DmitryBrant.ImageFormats
             try
             {
                 int bytesPerBitPlane = ((imgWidth + 15) / 16) * 2;
-                int bytesPerLine = bytesPerBitPlane * numPlanes;
+                int bytesPerLine = (modePbm && numPlanes == 8) ? imgWidth : bytesPerBitPlane * numPlanes;
+                if (bytesPerLine % 2 == 1) bytesPerLine++;
 
                 // TODO: account for mask data?
 
@@ -419,13 +430,25 @@ namespace DmitryBrant.ImageFormats
                         {
                             index = (int)imageLine[x];
 
-
                             if (maskType == 2 && index == transparentColor)
                             {
-                                bmpData[4 * (y * imgWidth + x)] = 0;
-                                bmpData[4 * (y * imgWidth + x) + 1] = 0;
-                                bmpData[4 * (y * imgWidth + x) + 2] = 0;
-                                bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                /*
+                                 * TODO: handle BEAM data?
+                                if (beamData != null && beamData.Length > (4 * y))
+                                {
+                                    bmpData[4 * (y * imgWidth + x)] = beamData[4 * y + 0];
+                                    bmpData[4 * (y * imgWidth + x) + 1] = beamData[4 * y + 1];
+                                    bmpData[4 * (y * imgWidth + x) + 2] = beamData[4 * y + 2];
+                                    bmpData[4 * (y * imgWidth + x) + 3] = beamData[4 * y + 3];
+                                }
+                                else
+                                */
+                                {
+                                    bmpData[4 * (y * imgWidth + x)] = 0;
+                                    bmpData[4 * (y * imgWidth + x) + 1] = 0;
+                                    bmpData[4 * (y * imgWidth + x) + 2] = 0;
+                                    bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                }
                             }
                             else
                             {
