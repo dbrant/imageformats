@@ -73,6 +73,7 @@ namespace DmitryBrant.ImageFormats
             bool modeHAM = false;
             int modeXBMI = -1;
 
+            long bodyChunkPosition = -1;
             BinaryReader reader = new BinaryReader(stream);
 
             byte[] tempBytes = new byte[65536];
@@ -98,11 +99,14 @@ namespace DmitryBrant.ImageFormats
                 stream.Read(tempBytes, 0, 4);
                 string chunkName = Encoding.ASCII.GetString(tempBytes, 0, 4);
                 chunkSize = Util.BigEndian(reader.ReadUInt32());
-                if (chunkSize % 2 > 0) { chunkSize++; }
+
+                // The spec says that chunks should be aligned to word boundaries, but I've seen images
+                // in the wild that don't do that, so checking for this seems unnecessary.
+                // if (chunkSize % 2 > 0) { chunkSize++; }
 
                 if (chunkName == "BODY")
                 {
-                    break;
+                    bodyChunkPosition = stream.Position;
                 }
 
                 if (chunkSize <= tempBytes.Length)
@@ -240,7 +244,7 @@ namespace DmitryBrant.ImageFormats
                 else if (chunkName == "BEAM")
                 {
                     // The BEAM chunk contains palette information for each line of the image.
-                    // For each line, it's n words of data, with n = number of colors in the palette.
+                    // For each line it's n words of data, with n = number of colors in the palette.
                     // The 16 bits of each word are: 0000 RRRR GGGG BBBB.
                     int ptr = 0;
                     for (int i = 0; i < imgHeight; i++)
@@ -259,7 +263,38 @@ namespace DmitryBrant.ImageFormats
                         rowPalette.Add(rowPal);
                     }
                 }
+                else if (chunkName == "RAST")
+                {
+                    // The RAST chunk contains palette information for each line of the image.
+                    // For each line it's 17 words of data. The first word is the line number,
+                    // followed by 16 words for 16 colors. (Other numbers of colors possible?)
+                    int ptr = 0;
+                    for (int i = 0; i < imgHeight; i++)
+                    {
+                        var rowPal = new byte[totalColors * 3];
+                        // We're ignoring the line number here, since the images I've seen in the wild
+                        // have all 0's for the line numbers. If the palette in your image looks weird,
+                        // this is likely the cause.
+                        // TODO: apply line numbers correctly if they are nonzero.
+                        int lineNum = Util.BigEndian(BitConverter.ToUInt16(tempBytes, ptr)); ptr += 2;
+                        for (int c = 0; c < totalColors; c++)
+                        {
+                            int color = Util.BigEndian(BitConverter.ToUInt16(tempBytes, ptr)); ptr += 2;
+                            rowPal[c * 3] = (byte)(((color & 0x700) >> 7 | (color & 0x800) >> 11) * 0x11);
+                            rowPal[c * 3 + 1] = (byte)(((color & 0x70) >> 3 | (color & 0x80) >> 7) * 0x11);
+                            rowPal[c * 3 + 2] = (byte)(((color & 0x7) << 1 | (color & 0x8) >> 3) * 0x11);
+                        }
+                        rowPalette.Add(rowPal);
+                    }
+                }
             }
+
+            if (bodyChunkPosition < 0)
+            {
+                throw new ApplicationException("Image does not seem to contain a body chunk.");
+            }
+
+            stream.Position = bodyChunkPosition;
 
             if (imgWidth == -1 || imgHeight == -1 || (numPlanes > 12 && numPlanes != 24 && numPlanes != 32))
             {
