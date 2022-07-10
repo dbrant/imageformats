@@ -65,7 +65,6 @@ namespace DmitryBrant.ImageFormats
             int compressionType = 0;
             int transparentColor = 0;
             bool haveCAMG = false;
-            bool haveCTBL = false;
             bool haveSHAM = false;
             bool modeShamLaced = false;
             bool modePbm = false;
@@ -93,8 +92,6 @@ namespace DmitryBrant.ImageFormats
 
             byte[] palette = null;
             var rowPalette = new List<byte[]>();
-
-            byte[] beamData = null;
 
             while (stream.Position < stream.Length)
             {
@@ -184,7 +181,6 @@ namespace DmitryBrant.ImageFormats
                 }
                 else if (chunkName == "CTBL")
                 {
-                    haveCTBL = true;
                     int bytesPerRow = 32;
                     int rowsInChunk = (int)chunkSize / bytesPerRow;
                     int colorsPerRow = Math.Min(bytesPerRow / 2, palette.Length / 3);
@@ -243,10 +239,24 @@ namespace DmitryBrant.ImageFormats
                 }
                 else if (chunkName == "BEAM")
                 {
-                    beamData = new byte[chunkSize];
-                    for (int c = 0; c < chunkSize; c++)
+                    // The BEAM chunk contains palette information for each line of the image.
+                    // For each line, it's n words of data, with n = number of colors in the palette.
+                    // The 16 bits of each word are: 0000 RRRR GGGG BBBB.
+                    int ptr = 0;
+                    for (int i = 0; i < imgHeight; i++)
                     {
-                        beamData[c] = tempBytes[c];
+                        var rowPal = new byte[totalColors * 3];
+                        for (int c = 0; c < totalColors; c++)
+                        {
+                            int r = (tempBytes[ptr++] & 0xF);
+                            int g = tempBytes[ptr++];
+                            int b = g & 0xF;
+                            g = (g >> 4) & 0xF;
+                            rowPal[c * 3] = (byte)((r << 4) | r);
+                            rowPal[c * 3 + 1] = (byte)((g << 4) | g);
+                            rowPal[c * 3 + 2] = (byte)((b << 4) | b);
+                        }
+                        rowPalette.Add(rowPal);
                     }
                 }
             }
@@ -290,7 +300,7 @@ namespace DmitryBrant.ImageFormats
             if (modeHAM && numColorBits > (numPlanes - 2))
             {
                 // Cull the color palette if we have HAM mode but too many colors in CMAP.
-                var delta = numColorBits - numPlanes + 2;
+                int delta = numColorBits - numPlanes + 2;
                 numColorBits -= delta;
                 totalColors >>= delta;
             }
@@ -369,7 +379,7 @@ namespace DmitryBrant.ImageFormats
                         int valShift = 8 - hamShift;
                         int hamVal;
                         byte[] pal = palette;
-                        if (haveSHAM)
+                        if (rowPalette.Count > 0)
                         {
                             if (modeShamLaced && rowPalette.Count > y / 2)
                             {
@@ -387,6 +397,8 @@ namespace DmitryBrant.ImageFormats
                             hamVal = (index >> hamShift) & 0x3;
                             index %= totalColors;
 
+                            /*
+                             * Uncomment if you would like the transparent color to become actually transparent.
                             if (maskType == 2 && index == transparentColor)
                             {
                                 bmpData[4 * (y * imgWidth + x)] = 0;
@@ -395,6 +407,7 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * imgWidth + x) + 3] = 0;
                             }
                             else
+                            */
                             {
                                 if (hamVal == 0)
                                 {
@@ -423,34 +436,24 @@ namespace DmitryBrant.ImageFormats
                     }
                     else
                     {
-                        byte[] pal = haveCTBL && rowPalette.Count > y ? rowPalette[y] : palette;
+                        byte[] pal = rowPalette.Count > y ? rowPalette[y] : palette;
                         bool halfBrite = false;
 
                         for (int x = 0; x < imgWidth; x++)
                         {
                             index = (int)imageLine[x];
 
+                            /*
+                             * Uncomment if you would like the transparent color to become actually transparent.
                             if (maskType == 2 && index == transparentColor)
                             {
-                                /*
-                                 * TODO: handle BEAM data?
-                                if (beamData != null && beamData.Length > (4 * y))
-                                {
-                                    bmpData[4 * (y * imgWidth + x)] = beamData[4 * y + 0];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = beamData[4 * y + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = beamData[4 * y + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 3] = beamData[4 * y + 3];
-                                }
-                                else
-                                */
-                                {
-                                    bmpData[4 * (y * imgWidth + x)] = 0;
-                                    bmpData[4 * (y * imgWidth + x) + 1] = 0;
-                                    bmpData[4 * (y * imgWidth + x) + 2] = 0;
-                                    bmpData[4 * (y * imgWidth + x) + 3] = 0;
-                                }
+                                bmpData[4 * (y * imgWidth + x)] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 1] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 2] = 0;
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0;
                             }
                             else
+                            */
                             {
                                 if (modeHalfBrite)
                                 {
