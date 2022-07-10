@@ -167,6 +167,93 @@ namespace DmitryBrant.ImageFormats
                         }
                     }
                 }
+                else if (compressionType == 1)
+                {
+                    var uncompressed = new byte[imgWidth * imgHeight * numElements];
+                    var curElement = new byte[numElements];
+                    int uptr = 0;
+                    int bptr = 0;
+                    
+                    int curCount = 0;
+                    bool curLiteral = false;
+
+                    /*
+                     * This is a modified version of PackBits compression where the "code" byte controls
+                     * the state of the next [numElements] worth of bytes, instead of just a single byte.
+                     * Since these are RGB images, with each byte containing R, G, B, R, G, B, etc., it
+                     * would not make sense to do run-length encoding on a per-byte basis, since there wouldn't
+                     * be many useful runs where R/G/B values are perfectly uniform. Therefore the run-length
+                     * encoding is done by triplets of bytes (in the case of RGB), or quadruplets (RGBA), etc.
+                     */
+
+                    while (uptr < uncompressed.Length && bptr < bodyChunk.Length)
+                    {
+                        if (curCount > 0)
+                        {
+                            curCount--;
+                            if (curLiteral)
+                            {
+                                for (int e = 0; e < numElements; e++)
+                                {
+                                    uncompressed[uptr++] = bodyChunk[bptr++];
+                                }
+                            }
+                            else
+                            {
+                                for (int e = 0; e < numElements; e++)
+                                {
+                                    uncompressed[uptr++] = curElement[e];
+                                }
+                            }
+                            continue;
+                        }
+
+                        int c;
+                        do
+                        {
+                            c = bodyChunk[bptr++];
+                        } while (c == 128 && stream.Position < stream.Length);
+
+                        if (c < 128)
+                        {
+                            curLiteral = true;
+                            curCount = c + 1;
+                        }
+                        else
+                        {
+                            curLiteral = false;
+                            curCount = 257 - c;
+                            for (int e = 0; e < numElements; e++)
+                            {
+                                curElement[e] = bodyChunk[bptr++];
+                            }
+                        }
+                    }
+
+                    uptr = 0;
+
+                    for (int y = 0; y < imgHeight; y++)
+                    {
+                        for (int x = 0; x < imgWidth; x++)
+                        {
+                            // TODO: handle non-8-bit element lengths?
+                            if (numElements == 3)
+                            {
+                                bmpData[4 * (y * imgWidth + x) + 2] = uncompressed[uptr++];
+                                bmpData[4 * (y * imgWidth + x) + 1] = uncompressed[uptr++];
+                                bmpData[4 * (y * imgWidth + x)] = uncompressed[uptr++];
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                            }
+                            else if (numElements == 4)
+                            {
+                                bmpData[4 * (y * imgWidth + x) + 2] = uncompressed[uptr++];
+                                bmpData[4 * (y * imgWidth + x) + 1] = uncompressed[uptr++];
+                                bmpData[4 * (y * imgWidth + x)] = uncompressed[uptr++];
+                                bmpData[4 * (y * imgWidth + x) + 3] = uncompressed[uptr++];
+                            }
+                        }
+                    }
+                }
                 else if (compressionType == 5)
                 {
                     int scanLineSize = imgWidth;
