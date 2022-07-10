@@ -363,22 +363,24 @@ namespace DmitryBrant.ImageFormats
                 if (modeAcbm)
                 {
                     int bytesPerLine = bytesPerBitPlane;
-                    if (bytesPerLine % 2 == 1) bytesPerLine++;
-                    byte[] scanLine = new byte[bytesPerLine];
+                    int bytesPerPlane = bytesPerLine * imgHeight;
+                    if (bytesPerPlane % 2 == 1) bytesPerPlane++;
+
+                    byte[] planeBytes = new byte[bytesPerPlane];
 
                     for (int b = 0; b < numPlanes; b++)
                     {
+                        if (compressionType == 0)
+                        {
+                            stream.Read(planeBytes, 0, planeBytes.Length);
+                        }
+                        else if (compressionType == 1)
+                        {
+                            decompressor.ReadNextBytes(planeBytes, planeBytes.Length);
+                        }
                         for (int y = 0; y < imgHeight; y++)
                         {
-                            if (compressionType == 0)
-                            {
-                                stream.Read(scanLine, 0, scanLine.Length);
-                            }
-                            else if (compressionType == 1)
-                            {
-                                decompressor.ReadNextBytes(scanLine, bytesPerLine);
-                            }
-                            var bp = new BitPlaneReader(scanLine, 0);
+                            var bp = new BitPlaneReader(planeBytes, y * bytesPerLine);
                             for (int x = 0; x < imgWidth; x++)
                             {
                                 imageLines[y][x] |= (uint)bp.NextBit() << b;
