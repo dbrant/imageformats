@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Drawing;
+using SixLabors.ImageSharp;
 using System.IO;
+using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
@@ -122,10 +123,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing CUT file: " + e.Message);
             }
 
-            var bmp = new Bitmap(imgWidth, imgHeight, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-            System.Drawing.Imaging.BitmapData bmpBits = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-            System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, bmpData.Length);
-            bmp.UnlockBits(bmpBits);
+            var bmp = ImageTool.LoadRgb(imgWidth, imgHeight, bmpData);
             return bmp;
         }
     }

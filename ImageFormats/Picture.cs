@@ -1,6 +1,7 @@
-﻿using System.Drawing;
+﻿using SixLabors.ImageSharp;
 using System.IO;
 using System.Text;
+using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 

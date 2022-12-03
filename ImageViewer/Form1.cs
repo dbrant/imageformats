@@ -6,6 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
 using DmitryBrant.ImageFormats;
+using Image = System.Drawing.Image;
 
 /*
 
@@ -71,7 +72,7 @@ namespace ImageViewer
         {
             try
             {
-                Bitmap bmp = DmitryBrant.ImageFormats.Picture.Load(fileName);
+                Bitmap bmp = DmitryBrant.ImageFormats.Picture.Load(fileName).AsNative();
                 if (bmp == null)
                 {
                     //try loading the file natively...
