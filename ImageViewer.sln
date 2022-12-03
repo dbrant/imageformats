@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2012 for Windows Desktop
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageViewer", "ImageViewer.csproj", "{E918372C-0F3C-41F1-8A5B-EF4ED136C824}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageViewer", "ImageViewer\ImageViewer.csproj", "{E918372C-0F3C-41F1-8A5B-EF4ED136C824}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageFormats", "ImageFormats\ImageFormats.csproj", "{873B8031-6C75-47B4-83D0-8D1A05E8D938}"
 EndProject
