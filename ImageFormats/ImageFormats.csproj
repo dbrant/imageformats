@@ -5,6 +5,12 @@
     <RootNamespace>DmitryBrant.ImageFormats</RootNamespace>
     <AssemblyName>ImageFormats</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Title>ImageFormats</Title>
+    <Authors>Dmitry Brant</Authors>
+    <Copyright>Copyright © Dmitry Brant, 2021-</Copyright>
+    <PackageProjectUrl>https://dmitrybrant.com</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/dbrant/imageformats</RepositoryUrl>
+    <Description>Library for decoding old and obscure image formats.</Description>
   </PropertyGroup>
 
   <ItemGroup>

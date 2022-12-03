@@ -8,6 +8,10 @@
     <RootNamespace>ImageViewer</RootNamespace>
     <AssemblyName>ImageViewer</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Title>ImageViewer</Title>
+    <Authors>Dmitry Brant</Authors>
+    <Description></Description>
+    <Copyright>Copyright © Dmitry Brant, 2020</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
