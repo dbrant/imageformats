@@ -2,7 +2,6 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
 using DmitryBrant.ImageFormats;
@@ -72,7 +71,7 @@ namespace ImageViewer
         {
             try
             {
-                Bitmap bmp = DmitryBrant.ImageFormats.Picture.Load(fileName).AsNative();
+                var bmp = Picture.Load(fileName).FromImageSharp();
                 if (bmp == null)
                 {
                     //try loading the file natively...
