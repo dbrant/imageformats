@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using SixLabors.ImageSharp;
 using System.IO;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
 Decoder for DICOM images. May not decode all variations of DICOM
 images, since the specification is very broad.
 
-Copyright 2013-2016 Dmitry Brant
+Copyright 2013-2023 Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +38,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -53,7 +52,7 @@ namespace DmitryBrant.ImageFormats
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
         /// 
-        public static Bitmap Load(Stream stream)
+        public static Image Load(Stream stream)
         {
             BinaryReader reader = new BinaryReader(stream);
             byte[] tempBytes = new byte[256];
@@ -238,7 +237,7 @@ namespace DmitryBrant.ImageFormats
             //detect whether the data is really a JPG image
             if ((data[0] == 0xFF) && (data[1] == 0xD8) && (data[2] == 0xFF))
             {
-                return Bitmap.Load(dataStream);
+                return Image.Load(dataStream);
             }
 
 
@@ -357,8 +356,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing DICOM file: " + e.Message);
             }
 
-            var bmp = ImageTool.LoadRgb(imgWidth, imgHeight, bmpData);
-            return bmp;
+            return ImageTool.LoadRgb(imgWidth, imgHeight, bmpData);
         }
 
 

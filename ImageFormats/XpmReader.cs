@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using SixLabors.ImageSharp;
 using System.Collections.Generic;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
@@ -43,7 +42,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -56,7 +55,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which the picture will be loaded.</param>
         /// <returns>Bitmap that contains the picture, or null if loading failed.</returns>
-        public static Bitmap Load(Stream stream)
+        public static Image Load(Stream stream)
         {
             var colorDict = new Dictionary<string, UInt32>();
 
@@ -160,8 +159,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing XPM file: " + e.Message);
             }
 
-            var bmp = ImageTool.LoadRgba(bmpWidth, bmpHeight, bmpData);
-            return bmp;
+            return ImageTool.LoadRgba(bmpWidth, bmpHeight, bmpData);
         }
         
         private static string ReadUntil(Stream stream, char stopChar)

@@ -1,7 +1,6 @@
 ﻿using SixLabors.ImageSharp;
 using System.IO;
 using System.Text;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
@@ -9,7 +8,7 @@ This is a class library that contains image decoders for old and/or
 obscure image formats (.TGA, .PCX, .PPM, RAS, etc.). Refer to the
 individual source code files for each image type for more information.
 
-Copyright 2013-2019 Dmitry Brant
+Copyright 2013-2023 Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,9 +38,9 @@ namespace DmitryBrant.ImageFormats
         /// <param name="fileName">Name of the file to load.</param>
         /// <returns>Bitmap that contains the decoded image, or null if it could
         /// not be decoded by any of the formats known to this library.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
-            Bitmap bmp = null;
+            Image bmp = null;
             using (FileStream f = new FileStream(fileName, FileMode.Open, FileAccess.Read))
             {
                 bmp = Load(f);
@@ -81,9 +80,9 @@ namespace DmitryBrant.ImageFormats
         /// <param name="stream">Stream from which the image will be read.</param>
         /// <returns>Bitmap that contains the decoded image, or null if it could
         /// not be decoded by any of the formats known to this library.</returns>
-        public static Bitmap Load(Stream stream)
+        public static Image Load(Stream stream)
         {
-            Bitmap bmp = null;
+            Image bmp = null;
 
             //read the first few bytes of the file to determine what format it is...
             byte[] header = new byte[256];

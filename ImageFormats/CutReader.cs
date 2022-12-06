@@ -1,7 +1,6 @@
 ﻿using System;
 using SixLabors.ImageSharp;
 using System.IO;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
@@ -9,7 +8,7 @@ Decoder for Dr. Halo CUT (.CUT) images.
 Decodes all CUT images that I've found in the wild.  If you find
 one that it fails to decode, let me know!
 
-Copyright 2013-2016 Dmitry Brant
+Copyright 2013-2023 Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +38,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(string fileName){
+        public static Image Load(string fileName){
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 return Load(f);
@@ -51,7 +50,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(Stream stream)
+        public static Image Load(Stream stream)
         {
             BinaryReader reader = new BinaryReader(stream);
 
@@ -123,8 +122,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing CUT file: " + e.Message);
             }
 
-            var bmp = ImageTool.LoadRgb(imgWidth, imgHeight, bmpData);
-            return bmp;
+            return ImageTool.LoadRgb(imgWidth, imgHeight, bmpData);
         }
     }
 }

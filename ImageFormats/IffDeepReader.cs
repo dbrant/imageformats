@@ -2,14 +2,12 @@
 using SixLabors.ImageSharp;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
 Decoder for IFF DEEP (TV Paint) images.
 
-Copyright 2022 Dmitry Brant
+Copyright 2022- Dmitry Brant
 https://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +37,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -52,7 +50,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(Stream stream, bool wantOpacity = false)
+        public static Image Load(Stream stream, bool wantOpacity = false)
         {
             int imgWidth = -1;
             int imgHeight = -1;
@@ -312,8 +310,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing DEEP file: " + e.Message);
             }
 
-            var bmp = ImageTool.LoadRgba(imgWidth, imgHeight, bmpData);
-            return bmp;
+            return ImageTool.LoadRgba(imgWidth, imgHeight, bmpData);
         }
     }
 }

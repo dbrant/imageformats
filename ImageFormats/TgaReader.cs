@@ -1,8 +1,7 @@
 ﻿using System;
 using SixLabors.ImageSharp;
-using System.IO;
 using SixLabors.ImageSharp.Processing;
-using Bitmap = SixLabors.ImageSharp.Image;
+using System.IO;
 
 /*
 
@@ -42,7 +41,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -56,7 +55,7 @@ namespace DmitryBrant.ImageFormats
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
         /// 
-        public static Bitmap Load(Stream stream)
+        public static Image Load(Stream stream)
         {
             BinaryReader reader = new BinaryReader(stream);
 

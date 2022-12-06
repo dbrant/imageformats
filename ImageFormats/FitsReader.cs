@@ -2,7 +2,6 @@
 using SixLabors.ImageSharp;
 using System.IO;
 using System.Text;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
@@ -39,7 +38,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -52,10 +51,10 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(Stream stream)
+        public static Image Load(Stream stream)
         {
             byte[] tempBytes = new byte[HEADER_ITEM_LENGTH];
-            Bitmap bmp = null;
+            Image bmp = null;
             int maxHeaderItems = 1000;
 
             string itemStr;
@@ -180,7 +179,7 @@ namespace DmitryBrant.ImageFormats
             return bmp;
         }
 
-        private static Bitmap LoadImageData(Stream stream, int bitsPerPixel, int numAxes, int width, int height, int depth, float[] dataMin, float[] dataMax)
+        private static Image LoadImageData(Stream stream, int bitsPerPixel, int numAxes, int width, int height, int depth, float[] dataMin, float[] dataMax)
         {
             byte[] bmpData = null;
             float f;
@@ -279,8 +278,7 @@ namespace DmitryBrant.ImageFormats
 
             if (bmpData == null) { return null; }
 
-            var theBitmap = ImageTool.LoadRgb(width, height, bmpData);
-            return theBitmap;
+            return ImageTool.LoadRgb(width, height, bmpData);
         }
 
         private static float ReadSingle(byte[] bytes)

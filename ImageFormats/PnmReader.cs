@@ -2,7 +2,6 @@
 using System.IO;
 using System.Text;
 using SixLabors.ImageSharp;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
@@ -44,7 +43,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">File name of the picture to load.</param>
         /// <returns>Bitmap that contains the picture.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
@@ -57,7 +56,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which the picture will be loaded.</param>
         /// <returns>Bitmap that contains the picture.</returns>
-        public static Bitmap Load(Stream inStream)
+        public static Image Load(Stream inStream)
         {
             int bytePtr = 0;
             byte[] bytes = new byte[inStream.Length];
@@ -261,8 +260,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing PNM file: " + e.Message);
             }
 
-            var bmp = ImageTool.LoadRgb(bmpWidth, bmpHeight, bmpData);
-            return bmp;
+            return ImageTool.LoadRgb(bmpWidth, bmpHeight, bmpData);
         }
         
         private static void ReadLineOfInts(byte[] bytes, ref int bytePtr, int[] intArray, out int numIntsRead)

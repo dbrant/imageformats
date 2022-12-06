@@ -3,13 +3,12 @@ using SixLabors.ImageSharp;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
-using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
 Decoder for ILBM (Interleaved Bitmap) images.
 
-Copyright 2020 Dmitry Brant
+Copyright 2020- Dmitry Brant
 https://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +38,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(string fileName)
+        public static Image Load(string fileName)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -52,7 +51,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Bitmap Load(Stream stream, bool resizeForAspect = false)
+        public static Image Load(Stream stream, bool resizeForAspect = false)
         {
             int imgWidth = -1;
             int imgHeight = -1;
