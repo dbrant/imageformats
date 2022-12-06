@@ -1,8 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using System.Drawing;
+using SixLabors.ImageSharp;
 using System.Collections.Generic;
+using Bitmap = SixLabors.ImageSharp.Image;
 
 /*
 
@@ -113,7 +114,7 @@ namespace DmitryBrant.ImageFormats
                 }
                 else
                 {
-                    intColor = (uint) Color.FromName(sampleValue).ToArgb();
+                    intColor = Color.Parse(sampleValue).ToArgb();
                 }
                 colorDict.Add(sampleChar, intColor);
             }
@@ -159,10 +160,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing XPM file: " + e.Message);
             }
 
-            var bmp = new Bitmap(bmpWidth, bmpHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            System.Drawing.Imaging.BitmapData bmpBits = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            System.Runtime.InteropServices.Marshal.Copy(bmpData, 0, bmpBits.Scan0, bmpData.Length);
-            bmp.UnlockBits(bmpBits);
+            var bmp = ImageTool.LoadRgba(bmpWidth, bmpHeight, bmpData);
             return bmp;
         }
         
