@@ -278,7 +278,7 @@ namespace DmitryBrant.ImageFormats
 
             if (bmpData == null) { return null; }
 
-            return ImageTool.LoadRgb(width, height, bmpData);
+            return Util.LoadRgb(width, height, bmpData);
         }
 
         private static float ReadSingle(byte[] bytes)

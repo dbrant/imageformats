@@ -400,7 +400,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing TGA file: " + e.Message);
             }
 
-            var bmp = ImageTool.LoadRgba(imgWidth, imgHeight, bmpData);
+            var bmp = Util.LoadRgba(imgWidth, imgHeight, bmpData);
 
             int imgOrientation = (imgFlags >> 4) & 0x3;
             if (imgOrientation == 1)

@@ -269,7 +269,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing RAS file: " + e.Message);
             }
 
-            return ImageTool.LoadRgb(imgWidth, imgHeight, bmpData);
+            return Util.LoadRgb(imgWidth, imgHeight, bmpData);
         }
 
         /// <summary>

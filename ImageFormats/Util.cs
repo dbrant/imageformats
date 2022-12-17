@@ -1,4 +1,7 @@
-﻿using System;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using System;
 
 namespace DmitryBrant.ImageFormats
 {
@@ -14,37 +17,69 @@ namespace DmitryBrant.ImageFormats
             return float.TryParse(str, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out f);
         }
 
-        public static UInt16 LittleEndian(UInt16 val)
+        public static ushort LittleEndian(ushort val)
         {
             return BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
-        public static UInt32 LittleEndian(UInt32 val)
+        public static uint LittleEndian(uint val)
         {
             return BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
 
-        public static UInt16 BigEndian(UInt16 val)
+        public static ushort BigEndian(ushort val)
         {
             return !BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
-        public static UInt32 BigEndian(UInt32 val)
+        public static uint BigEndian(uint val)
         {
             return !BitConverter.IsLittleEndian ? val : ConvEndian(val);
         }
 
-        private static UInt16 ConvEndian(UInt16 val)
+        private static ushort ConvEndian(ushort val)
         {
-            UInt16 temp;
-            temp = (UInt16)(val << 8); temp &= 0xFF00; temp |= (UInt16)((val >> 8) & 0xFF);
+            ushort temp;
+            temp = (ushort)(val << 8); temp &= 0xFF00; temp |= (ushort)((val >> 8) & 0xFF);
             return temp;
         }
-        private static UInt32 ConvEndian(UInt32 val)
+        private static uint ConvEndian(uint val)
         {
-            UInt32 temp = (val & 0x000000FF) << 24;
+            uint temp = (val & 0x000000FF) << 24;
             temp |= (val & 0x0000FF00) << 8;
             temp |= (val & 0x00FF0000) >> 8;
             temp |= (val & 0xFF000000) >> 24;
-            return (temp);
+            return temp;
+        }
+
+        public static Image LoadRgba(int width, int height, byte[] data)
+        {
+            return Image.LoadPixelData<Bgra32>(data, width, height);
+        }
+
+        public static Image LoadRgb(int width, int height, byte[] data)
+        {
+            const byte alpha = byte.MaxValue;
+            for (var i = 0; i < data.Length; i += 4)
+                data[i + 3] = alpha;
+            return Image.LoadPixelData<Bgra32>(data, width, height);
+        }
+
+        public static Image ResizeTo(this Image original, Size newSize)
+        {
+            return original.Clone(x => x.Resize(newSize));
+        }
+
+        public static uint ToArgb(this Color color)
+        {
+            return color.ToPixel<Argb32>().Argb;
+        }
+
+        public static void Flip(this Image image, params FlipMode[] modes)
+        {
+            image.Mutate(x =>
+            {
+                foreach (var mode in modes)
+                    x.Flip(mode);
+            });
         }
     }
 }

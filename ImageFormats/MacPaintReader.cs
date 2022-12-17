@@ -112,7 +112,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing MacPaint file: " + e.Message);
             }
 
-            return ImageTool.LoadRgb(MAC_PAINT_WIDTH, MAC_PAINT_HEIGHT, bmpData);
+            return Util.LoadRgb(MAC_PAINT_WIDTH, MAC_PAINT_HEIGHT, bmpData);
         }
 
         /// <summary>
