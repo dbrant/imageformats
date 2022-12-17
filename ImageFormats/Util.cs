@@ -57,9 +57,8 @@ namespace DmitryBrant.ImageFormats
 
         public static Image LoadRgb(int width, int height, byte[] data)
         {
-            const byte alpha = byte.MaxValue;
-            for (var i = 0; i < data.Length; i += 4)
-                data[i + 3] = alpha;
+            for (var i = 3; i < data.Length; i += 4)
+                data[i] = 0xFF;
             return Image.LoadPixelData<Bgra32>(data, width, height);
         }
 
