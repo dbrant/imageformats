@@ -35,9 +35,6 @@ namespace DmitryBrant.ImageFormats
     /// </summary>
     public static class PnmReader
     {
-        
-        private const int MAX_INTS_PER_LINE = 10000;
-
         /// <summary>
         /// Load a portable picture map (either PPM, PGM, or PBM) into a Bitmap object.
         /// </summary>
@@ -62,52 +59,30 @@ namespace DmitryBrant.ImageFormats
             byte[] bytes = new byte[inStream.Length];
             inStream.Read(bytes, 0, bytes.Length);
             
-            int[] lineInts = new int[MAX_INTS_PER_LINE];
+            int[] lineInts = new int[1024];
             int lineIntsRead;
             char pnmType;
-            int bmpWidth = -1, bmpHeight = -1, bmpMaxVal = -1;
+            int bmpWidth, bmpHeight, bmpMaxVal;
 
             //check if the format is correct...
             if ((char)bytes[bytePtr++] != 'P') throw new ApplicationException("Incorrect file format.");
             pnmType = (char)bytes[bytePtr++];
             if ((pnmType < '1') || (pnmType > '6')) throw new ApplicationException("Unrecognized bitmap type.");
 
+            ReadNextInts(bytes, ref bytePtr, lineInts, 2, out _);
+
+            bmpWidth = lineInts[0];
+            bmpHeight = lineInts[1];
+
             //if it's monochrome, it won't have a maxval, so set it to 1
-            if ((pnmType == '1') || (pnmType == '4')) bmpMaxVal = 1;
-
-            int nextByte = bytes[bytePtr];
-            if (nextByte == 0x20 && pnmType >= '4')
+            if ((pnmType == '1') || (pnmType == '4'))
             {
-                // It's likely space-separated values on the same line, followed by binary data.
-                string str = Encoding.ASCII.GetString(bytes, bytePtr, 32);
-                string[] strArray = str.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                if (strArray.Length >= 3)
-                {
-                    bmpWidth = Convert.ToInt32(strArray[0]);
-                    bmpHeight = Convert.ToInt32(strArray[1]);
-                    bmpMaxVal = Convert.ToInt32(strArray[2]);
-
-                    string searchStr = " " + bmpMaxVal.ToString() + " ";
-                    bytePtr += str.LastIndexOf(searchStr) + searchStr.Length;
-                }
+                bmpMaxVal = 1;
             }
             else
             {
-                while (bytePtr < bytes.Length)
-                {
-                    ReadLineOfInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
-                    if (lineIntsRead == 0) continue;
-                    for (int i = 0; i < lineIntsRead; i++)
-                    {
-                        if (bmpWidth == -1) { bmpWidth = lineInts[i]; }
-                        else if (bmpHeight == -1) { bmpHeight = lineInts[i]; }
-                        else if (bmpMaxVal == -1) { bmpMaxVal = lineInts[i]; }
-                    }
-
-                    //check if we have all necessary attributes
-                    if ((bmpWidth != -1) && (bmpHeight != -1) && (bmpMaxVal != -1))
-                        break;
-                }
+                ReadNextInts(bytes, ref bytePtr, lineInts, 1, out _);
+                bmpMaxVal = lineInts[0];
             }
 
             //check for nonsensical dimensions
@@ -124,9 +99,9 @@ namespace DmitryBrant.ImageFormats
                 {
                     int elementCount = 0;
                     byte elementVal;
-                    while (bytePtr < bytes.Length)
+                    while (bytePtr < bytes.Length && elementCount < maxElementCount)
                     {
-                        ReadLineOfSingleDigitInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
+                        ReadNextSingleDigitInts(bytes, ref bytePtr, lineInts, lineInts.Length, out lineIntsRead);
                         for (int i = 0; i < lineIntsRead; i++)
                         {
                             if (elementCount >= maxElementCount) break;
@@ -136,15 +111,14 @@ namespace DmitryBrant.ImageFormats
                             bmpData[elementCount + 2] = elementVal;
                             elementCount += 4;
                         }
-                        if (elementCount >= maxElementCount) break;
                     }
                 }
                 else if (pnmType == '2') //grayscale bitmap (ascii)
                 {
                     int elementCount = 0;
-                    while (bytePtr < bytes.Length)
+                    while (bytePtr < bytes.Length && elementCount < maxElementCount)
                     {
-                        ReadLineOfInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
+                        ReadNextInts(bytes, ref bytePtr, lineInts, lineInts.Length, out lineIntsRead);
                         for (int i = 0; i < lineIntsRead; i++)
                         {
                             if (elementCount >= maxElementCount) break;
@@ -153,15 +127,14 @@ namespace DmitryBrant.ImageFormats
                             bmpData[elementCount + 2] = bmpData[elementCount];
                             elementCount += 4;
                         }
-                        if (elementCount >= maxElementCount) break;
                     }
                 }
                 else if (pnmType == '3') //color bitmap (ascii)
                 {
                     int elementCount = 0, elementMod = 2;
-                    while (bytePtr < bytes.Length)
+                    while (bytePtr < bytes.Length && elementCount < maxElementCount)
                     {
-                        ReadLineOfInts(bytes, ref bytePtr, lineInts, out lineIntsRead);
+                        ReadNextInts(bytes, ref bytePtr, lineInts, lineInts.Length, out lineIntsRead);
                         for (int i = 0; i < lineIntsRead; i++)
                         {
                             if (elementCount >= maxElementCount) break;
@@ -169,7 +142,6 @@ namespace DmitryBrant.ImageFormats
                             elementMod--;
                             if (elementMod < 0) { elementCount += 4; elementMod = 2; }
                         }
-                        if (elementCount >= maxElementCount) break;
                     }
                 }
                 else if (pnmType == '4') //monochrome bitmap (binary)
@@ -263,28 +235,38 @@ namespace DmitryBrant.ImageFormats
             return Util.LoadRgb(bmpWidth, bmpHeight, bmpData);
         }
         
-        private static void ReadLineOfInts(byte[] bytes, ref int bytePtr, int[] intArray, out int numIntsRead)
+        private static void ReadNextInts(byte[] bytes, ref int bytePtr, int[] intArray, int numIntsToRead, out int numIntsRead)
         {
             int currentInt = 0;
-            int intIndex = 0;
             bool isComment = false;
             bool intStarted = false;
             byte b;
+            numIntsRead = 0;
             do
             {
                 b = bytes[bytePtr++];
-                
-                if (b < '0' || b > '9')
+
+                if (b == '#')
+                {
+                    isComment = true;
+                }
+
+                if (isComment)
+                {
+                    // wait until comment is ended by a newline
+                    if ((b == '\r') || (b == '\n')) { isComment = false; }
+                }
+                else if (b < '0' || b > '9')
                 {
                     // not a digit
                     if (intStarted)
                     {
                         // close out the current int
-                        intArray[intIndex++] = currentInt;
+                        intArray[numIntsRead++] = currentInt;
                         intStarted = false;
                     }
                 }
-                else if (!isComment)
+                else
                 {
                     // digit
                     if (intStarted)
@@ -300,35 +282,33 @@ namespace DmitryBrant.ImageFormats
                         currentInt = b - '0';
                     }
                 }
-
-                if ((b == '\r') || (b == '\n')) { break; }
-                else if (b == '#') { isComment = true; }
-                
-            } while (bytePtr < bytes.Length);
-            
-            numIntsRead = intIndex;
+            } while (bytePtr < bytes.Length && numIntsRead < numIntsToRead);
         }
 
-        private static void ReadLineOfSingleDigitInts(byte[] bytes, ref int bytePtr, int[] intArray, out int numIntsRead)
+        private static void ReadNextSingleDigitInts(byte[] bytes, ref int bytePtr, int[] intArray, int numIntsToRead, out int numIntsRead)
         {
-            int intIndex = 0;
+            numIntsRead = 0;
             bool isComment = false;
             byte b;
             do
             {
                 b = bytes[bytePtr++];
 
-                if (!isComment && b >= '0' && b <= '9')
+                if (b == '#')
                 {
-                    intArray[intIndex++] = b - '0';
+                    isComment = true;
                 }
 
-                if ((b == '\r') || (b == '\n')) { break; }
-                else if (b == '#') { isComment = true; }
-
-            } while (bytePtr < bytes.Length);
-
-            numIntsRead = intIndex;
+                if (isComment)
+                {
+                    // wait until comment is ended by a newline
+                    if ((b == '\r') || (b == '\n')) { isComment = false; }
+                }
+                else if (!isComment && b >= '0' && b <= '9')
+                {
+                    intArray[numIntsRead++] = b - '0';
+                }
+            } while (bytePtr < bytes.Length && numIntsRead < numIntsToRead);
         }
     }
 }
