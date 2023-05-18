@@ -11,7 +11,7 @@ At the very least, it decodes all Netpbm images that
 I've found in the wild.  If you find one that it fails to decode,
 let me know!
 
-Copyright 2013-2018 Dmitry Brant
+Copyright 2013+ by Dmitry Brant
 http://dmitrybrant.com
 
 Licensed under the Apache License, Version 2.0 (the "License");
