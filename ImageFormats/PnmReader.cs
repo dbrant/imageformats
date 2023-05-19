@@ -40,11 +40,11 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">File name of the picture to load.</param>
         /// <returns>Bitmap that contains the picture.</returns>
-        public static Image Load(string fileName)
+        public static Image Load(string fileName, bool bigEndian = true)
         {
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                return Load(f);
+                return Load(f, bigEndian);
             }
         }
 
@@ -53,7 +53,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which the picture will be loaded.</param>
         /// <returns>Bitmap that contains the picture.</returns>
-        public static Image Load(Stream inStream)
+        public static Image Load(Stream inStream, bool bigEndian = true)
         {
             int bytePtr = 0;
             byte[] bytes = new byte[inStream.Length];
@@ -188,14 +188,29 @@ namespace DmitryBrant.ImageFormats
                     }
                     else if (bmpMaxVal < 65536)
                     {
-                        for (int i = 0; i < numPixels; i++)
+                        if (bigEndian)
                         {
-                            pixel = (byte)(((bytes[bytePtr] << 8) + bytes[bytePtr + 1]) * 255 / bmpMaxVal);
-                            bytePtr += 2;
-                            bmpData[elementCount++] = pixel;
-                            bmpData[elementCount++] = pixel;
-                            bmpData[elementCount++] = pixel;
-                            elementCount++;
+                            for (int i = 0; i < numPixels; i++)
+                            {
+                                pixel = (byte)(((bytes[bytePtr] << 8) + bytes[bytePtr + 1]) * 255 / bmpMaxVal);
+                                bytePtr += 2;
+                                bmpData[elementCount++] = pixel;
+                                bmpData[elementCount++] = pixel;
+                                bmpData[elementCount++] = pixel;
+                                elementCount++;
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < numPixels; i++)
+                            {
+                                pixel = (byte)(((bytes[bytePtr + 1] << 8) + bytes[bytePtr]) * 255 / bmpMaxVal);
+                                bytePtr += 2;
+                                bmpData[elementCount++] = pixel;
+                                bmpData[elementCount++] = pixel;
+                                bmpData[elementCount++] = pixel;
+                                elementCount++;
+                            }
                         }
                     }
                 }
@@ -215,13 +230,27 @@ namespace DmitryBrant.ImageFormats
                     }
                     else if (bmpMaxVal < 65536)
                     {
-                        for (int i = 0; i < numPixels; i++)
+                        if (bigEndian)
                         {
-                            bmpData[elementCount++] = (byte)(((bytes[bytePtr + 4] << 8) + bytes[bytePtr + 5]) * 255 / bmpMaxVal);
-                            bmpData[elementCount++] = (byte)(((bytes[bytePtr + 2] << 8) + bytes[bytePtr + 3]) * 255 / bmpMaxVal);
-                            bmpData[elementCount++] = (byte)(((bytes[bytePtr] << 8) + bytes[bytePtr + 1]) * 255 / bmpMaxVal);
-                            bytePtr += 6;
-                            elementCount++;
+                            for (int i = 0; i < numPixels; i++)
+                            {
+                                bmpData[elementCount++] = (byte)(((bytes[bytePtr + 4] << 8) + bytes[bytePtr + 5]) * 255 / bmpMaxVal);
+                                bmpData[elementCount++] = (byte)(((bytes[bytePtr + 2] << 8) + bytes[bytePtr + 3]) * 255 / bmpMaxVal);
+                                bmpData[elementCount++] = (byte)(((bytes[bytePtr] << 8) + bytes[bytePtr + 1]) * 255 / bmpMaxVal);
+                                bytePtr += 6;
+                                elementCount++;
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < numPixels; i++)
+                            {
+                                bmpData[elementCount++] = (byte)(((bytes[bytePtr + 5] << 8) + bytes[bytePtr + 4]) * 255 / bmpMaxVal);
+                                bmpData[elementCount++] = (byte)(((bytes[bytePtr + 3] << 8) + bytes[bytePtr + 2]) * 255 / bmpMaxVal);
+                                bmpData[elementCount++] = (byte)(((bytes[bytePtr + 1] << 8) + bytes[bytePtr]) * 255 / bmpMaxVal);
+                                bytePtr += 6;
+                                elementCount++;
+                            }
                         }
                     }
                 }
