@@ -264,6 +264,14 @@ namespace DmitryBrant.ImageFormats
             return Util.LoadRgb(bmpWidth, bmpHeight, bmpData);
         }
         
+        /// <summary>
+        /// Reads an arbitrary number of integers from a string buffer (passed as a byte array),
+        /// and dumps them into an output array.
+        /// This is optimized for PNM files, where each integer is assumed to be delimited by any number of non-digit bytes.
+        /// It also supports "comments" (anything after a "#" character, until a newline).
+        /// This is intended to be maximally performant (works in O(n) time), which is much more efficient
+        /// than doing a String.Split() then converting each result to an int.
+        /// </summary>
         private static void ReadNextInts(byte[] bytes, ref int bytePtr, int[] intArray, int numIntsToRead, out int numIntsRead)
         {
             int currentInt = 0;
@@ -314,6 +322,12 @@ namespace DmitryBrant.ImageFormats
             } while (bytePtr < bytes.Length && numIntsRead < numIntsToRead);
         }
 
+        /// <summary>
+        /// Reads an arbitrary number of integers from a string buffer (passed as a byte array),
+        /// and dumps them into an output array.
+        /// Very similar to ReadNextInts(), but even further optimized when the input is expected
+        /// to contain only single-digit integers, as in a PBM file where the values can be 0 or 1.
+        /// </summary>
         private static void ReadNextSingleDigitInts(byte[] bytes, ref int bytePtr, int[] intArray, int numIntsToRead, out int numIntsRead)
         {
             numIntsRead = 0;
