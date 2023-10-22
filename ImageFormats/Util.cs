@@ -81,4 +81,10 @@ namespace DmitryBrant.ImageFormats
             });
         }
     }
+
+    public class ImageDecodeException : Exception
+    {
+        protected ImageDecodeException() : base() { }
+        public ImageDecodeException(string message) : base(message) { }
+    }
 }

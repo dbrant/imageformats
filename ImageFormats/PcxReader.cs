@@ -63,11 +63,11 @@ namespace DmitryBrant.ImageFormats
 
             byte tempByte = (byte)stream.ReadByte();
             if (tempByte != 10)
-                throw new ApplicationException("This is not a valid PCX file.");
+                throw new ImageDecodeException("This is not a valid PCX file.");
 
             var version = (byte)stream.ReadByte();
             if (version > 5)
-                throw new ApplicationException("Only Version 5 or lower PCX files are supported.");
+                throw new ImageDecodeException("Only Version 5 or lower PCX files are supported.");
 
             // This variable controls whether the bit plane values are interpreted as literal color states
             // instead of indices into the palette. In other words, this controls whether the palette is
@@ -78,11 +78,11 @@ namespace DmitryBrant.ImageFormats
 
             tempByte = (byte)stream.ReadByte();
             if (tempByte != 1)
-                throw new ApplicationException("Invalid PCX compression type.");
+                throw new ImageDecodeException("Invalid PCX compression type.");
 
             int imgBpp = stream.ReadByte();
             if (imgBpp != 8 && imgBpp != 4 && imgBpp != 2 && imgBpp != 1)
-                throw new ApplicationException("Only 8, 4, 2, and 1-bit PCX samples are supported.");
+                throw new ImageDecodeException("Only 8, 4, 2, and 1-bit PCX samples are supported.");
 
             UInt16 xmin = Util.LittleEndian(reader.ReadUInt16());
             UInt16 ymin = Util.LittleEndian(reader.ReadUInt16());
@@ -93,7 +93,7 @@ namespace DmitryBrant.ImageFormats
             int imgHeight = ymax - ymin + 1;
 
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
-                throw new ApplicationException("This PCX file appears to have invalid dimensions.");
+                throw new ImageDecodeException("This PCX file appears to have invalid dimensions.");
 
             Util.LittleEndian(reader.ReadUInt16()); //hdpi
             Util.LittleEndian(reader.ReadUInt16()); //vdpi

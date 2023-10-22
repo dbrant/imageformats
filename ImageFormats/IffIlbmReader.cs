@@ -80,13 +80,13 @@ namespace DmitryBrant.ImageFormats
             byte[] tempBytes = new byte[65536];
 
             stream.Read(tempBytes, 0, 4);
-            if (Encoding.ASCII.GetString(tempBytes, 0, 4) != "FORM") { throw new ApplicationException("This is not a valid ILBM file."); }
+            if (Encoding.ASCII.GetString(tempBytes, 0, 4) != "FORM") { throw new ImageDecodeException("This is not a valid ILBM file."); }
 
             uint chunkSize = Util.BigEndian(reader.ReadUInt32());
 
             stream.Read(tempBytes, 0, 4);
             string fileType = Encoding.ASCII.GetString(tempBytes, 0, 4);
-            if (fileType != "ILBM" && !fileType.StartsWith("PBM") && fileType != "ACBM") { throw new ApplicationException("This is not a valid ILBM file."); }
+            if (fileType != "ILBM" && !fileType.StartsWith("PBM") && fileType != "ACBM") { throw new ImageDecodeException("This is not a valid ILBM file."); }
             if (fileType.StartsWith("PBM")) { modePbm = true; }
             else if (fileType == "ACBM") { modeAcbm = true; }
 
@@ -295,19 +295,19 @@ namespace DmitryBrant.ImageFormats
 
             if (bodyChunkPosition < 0)
             {
-                throw new ApplicationException("Image does not seem to contain a body chunk.");
+                throw new ImageDecodeException("Image does not seem to contain a body chunk.");
             }
 
             stream.Position = bodyChunkPosition;
 
             if (imgWidth == -1 || imgHeight == -1 || (numPlanes > 12 && numPlanes != 24 && numPlanes != 32))
             {
-                throw new ApplicationException("Invalid format of ILBM file.");
+                throw new ImageDecodeException("Invalid format of ILBM file.");
             }
 
             if (maskType == 1)
             {
-                throw new ApplicationException("ILBM images with mask plane not yet implemented.");
+                throw new ImageDecodeException("ILBM images with mask plane not yet implemented.");
             }
 
             if (!haveCAMG)
@@ -411,7 +411,7 @@ namespace DmitryBrant.ImageFormats
                             }
                             else
                             {
-                                throw new ApplicationException("Unsupported bit width: " + numPlanes);
+                                throw new ImageDecodeException("Unsupported bit width: " + numPlanes);
                             }
                         }
                         else
@@ -549,7 +549,7 @@ namespace DmitryBrant.ImageFormats
                                 }
                                 else
                                 {
-                                    throw new ApplicationException("Unsupported XBMI mode: " + modeXBMI);
+                                    throw new ImageDecodeException("Unsupported XBMI mode: " + modeXBMI);
                                 }
 
                                 bmpData[4 * (y * imgWidth + x)] = (byte)prevB;

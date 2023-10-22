@@ -79,7 +79,7 @@ namespace ImageViewer
                     catch (Exception e) { Debug.WriteLine(e.Message); }
                 }
 
-                pictureBox1.Image = bmp ?? throw new ApplicationException(Resources.errorLoadFailed);
+                pictureBox1.Image = bmp ?? throw new ImageDecodeException(Resources.errorLoadFailed);
                 pictureBox1.Size = bmp.Size;
                 this.Text = fileName + " - " + Application.ProductName;
             }

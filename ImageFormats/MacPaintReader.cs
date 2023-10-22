@@ -46,13 +46,13 @@ namespace DmitryBrant.ImageFormats
 
             if (headerBytes[0] != 0)
             {
-                throw new ApplicationException("This is not a valid MacPaint file.");
+                throw new ImageDecodeException("This is not a valid MacPaint file.");
             }
 
             string fileType = Encoding.ASCII.GetString(headerBytes, 0x41, 4);
             if (fileType != "PNTG")
             {
-                throw new ApplicationException("This is not a valid MacPaint file.");
+                throw new ImageDecodeException("This is not a valid MacPaint file.");
             }
 
             int fileNameLen = headerBytes[1];
@@ -65,7 +65,7 @@ namespace DmitryBrant.ImageFormats
             if (startMagic != 0x2)
             {
                 // I have actually seen MacPaint files that do not have this magic value...
-                //throw new ApplicationException("This is not a valid MacPaint file.");
+                //throw new ImageDecodeException("This is not a valid MacPaint file.");
             }
 
             // Skip over pattern data

@@ -65,9 +65,9 @@ namespace DmitryBrant.ImageFormats
             int bmpWidth, bmpHeight, bmpMaxVal;
 
             //check if the format is correct...
-            if ((char)bytes[bytePtr++] != 'P') throw new ApplicationException("Incorrect file format.");
+            if ((char)bytes[bytePtr++] != 'P') throw new ImageDecodeException("Incorrect file format.");
             pnmType = (char)bytes[bytePtr++];
-            if ((pnmType < '1') || (pnmType > '6')) throw new ApplicationException("Unrecognized bitmap type.");
+            if ((pnmType < '1') || (pnmType > '6')) throw new ImageDecodeException("Unrecognized bitmap type.");
 
             ReadNextInts(bytes, ref bytePtr, lineInts, 2, out _);
 
@@ -87,7 +87,7 @@ namespace DmitryBrant.ImageFormats
 
             //check for nonsensical dimensions
             if ((bmpWidth <= 0) || (bmpHeight <= 0) || (bmpMaxVal <= 0))
-                throw new ApplicationException("Invalid image dimensions.");
+                throw new ImageDecodeException("Invalid image dimensions.");
 
             int numPixels = bmpWidth * bmpHeight;
             int maxElementCount = numPixels * 4;

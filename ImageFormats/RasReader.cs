@@ -61,7 +61,7 @@ namespace DmitryBrant.ImageFormats
             BinaryReader reader = new BinaryReader(stream);
             UInt32 tempDword = Util.BigEndian(reader.ReadUInt32());
             if (tempDword != 0x59a66a95)
-                throw new ApplicationException("This is not a valid RAS file.");
+                throw new ImageDecodeException("This is not a valid RAS file.");
 
             int imgWidth = (int)Util.BigEndian(reader.ReadUInt32());
             int imgHeight = (int)Util.BigEndian(reader.ReadUInt32());
@@ -74,10 +74,10 @@ namespace DmitryBrant.ImageFormats
             RleReader rleReader = new RleReader(stream, rasType == RAS_TYPE_RLE);
 
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767) || (mapLength > 32767))
-                throw new ApplicationException("This RAS file appears to have invalid dimensions.");
+                throw new ImageDecodeException("This RAS file appears to have invalid dimensions.");
 
             if ((imgBpp != 32) && (imgBpp != 24) && (imgBpp != 8) && (imgBpp != 4) && (imgBpp != 1))
-                throw new ApplicationException("Only 1, 4, 8, 24, and 32 bit images are supported.");
+                throw new ImageDecodeException("Only 1, 4, 8, 24, and 32 bit images are supported.");
 
             byte[] bmpData = new byte[imgWidth * 4 * imgHeight];
 

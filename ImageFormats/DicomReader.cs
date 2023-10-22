@@ -63,7 +63,7 @@ namespace DmitryBrant.ImageFormats
             //check signature...
             string signature = System.Text.Encoding.ASCII.GetString(tempBytes, 0, 4);
             if (!signature.Equals("DICM"))
-                throw new ApplicationException("Not a valid DICOM file.");
+                throw new ImageDecodeException("Not a valid DICOM file.");
 
             int imgWidth = 0, imgHeight = 0;
             int samplesPerPixel = 0, numFrames = 0, bitsPerSample = 0, bitsStored = 0;
@@ -75,7 +75,7 @@ namespace DmitryBrant.ImageFormats
             //read the meta-group, and determine stuff from it
             int metaGroupLen = (int)Util.LittleEndian(BitConverter.ToUInt32(tempBytes, 0xC));
             if(metaGroupLen > 10000)
-                throw new ApplicationException("Meta group is a bit too long. May not be a valid DICOM file.");
+                throw new ImageDecodeException("Meta group is a bit too long. May not be a valid DICOM file.");
 
             tempBytes = new byte[metaGroupLen];
             stream.Read(tempBytes, 0, metaGroupLen);
@@ -94,9 +94,9 @@ namespace DmitryBrant.ImageFormats
 
 
             if(isRLE)
-                throw new ApplicationException("RLE-encoded DICOM images are not supported.");
+                throw new ImageDecodeException("RLE-encoded DICOM images are not supported.");
             if (isJPEG)
-                throw new ApplicationException("JPEG-encoded DICOM images are not supported.");
+                throw new ImageDecodeException("JPEG-encoded DICOM images are not supported.");
 
 
             //get header information:
@@ -228,7 +228,7 @@ namespace DmitryBrant.ImageFormats
 
 
             if (dataLength == 0)
-                throw new ApplicationException("DICOM file does not appear to have any image data.");
+                throw new ImageDecodeException("DICOM file does not appear to have any image data.");
 
 
             MemoryStream dataStream = new MemoryStream(data);
@@ -245,10 +245,10 @@ namespace DmitryBrant.ImageFormats
                 numFrames = 1;
 
             if (samplesPerPixel > 4)
-                throw new ApplicationException("Do not support greater than 4 samples per pixel.");
+                throw new ImageDecodeException("Do not support greater than 4 samples per pixel.");
 
             if ((bitsPerSample != 8) && (bitsPerSample != 16) && (bitsPerSample != 32))
-                throw new ApplicationException("Invalid bits per sample.");
+                throw new ImageDecodeException("Invalid bits per sample.");
 
             byte[] bmpData = new byte[imgWidth * 4 * imgHeight];
 
@@ -425,25 +425,25 @@ namespace DmitryBrant.ImageFormats
                 if (v1 == 'U' && v2 == 'S')
                 {
                     if (len != 2)
-                        throw new ApplicationException("Incorrect size for a US field.");
+                        throw new ImageDecodeException("Incorrect size for a US field.");
                     ret = getShort(reader, groupNumber, bigEndian);
                 }
                 else if (v1 == 'U' && v2 == 'L')
                 {
                     if (len != 4)
-                        throw new ApplicationException("Incorrect size for a UL field.");
+                        throw new ImageDecodeException("Incorrect size for a UL field.");
                     ret = getInt(reader, groupNumber, bigEndian);
                 }
                 else if (v1 == 'S' && v2 == 'S')
                 {
                     if (len != 2)
-                        throw new ApplicationException("Incorrect size for a SS field.");
+                        throw new ImageDecodeException("Incorrect size for a SS field.");
                     ret = getShort(reader, groupNumber, bigEndian);
                 }
                 else if (v1 == 'S' && v2 == 'L')
                 {
                     if (len != 4)
-                        throw new ApplicationException("Incorrect size for a SL field.");
+                        throw new ImageDecodeException("Incorrect size for a SL field.");
                     ret = getInt(reader, groupNumber, bigEndian);
                 }
                 else if (v1 == 'I' && v2 == 'S' && len < 16)
