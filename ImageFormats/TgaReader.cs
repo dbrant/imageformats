@@ -43,10 +43,8 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Image Load(string fileName)
         {
-            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                return Load(f);
-            }
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Load(f);
         }
 
         /// <summary>
@@ -57,10 +55,9 @@ namespace DmitryBrant.ImageFormats
         /// 
         public static Image Load(Stream stream)
         {
-            BinaryReader reader = new BinaryReader(stream);
+            BinaryReader reader = new(stream);
 
             UInt32[] palette = null;
-            byte[] scanline = null;
 
             byte idFieldLength = (byte)stream.ReadByte();
             byte colorMap = (byte)stream.ReadByte();
@@ -158,6 +155,8 @@ namespace DmitryBrant.ImageFormats
                         }
                     }
                 }
+
+                byte[] scanline;
 
                 if (imageType == 1 || imageType == 2 || imageType == 3)
                 {
