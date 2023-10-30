@@ -39,10 +39,8 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Image Load(string fileName)
         {
-            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                return Load(f);
-            }
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Load(f);
         }
 
         /// <summary>
@@ -63,7 +61,7 @@ namespace DmitryBrant.ImageFormats
             int[] tvdcTable = new int[16];
             byte[] bodyChunk = null;
 
-            BinaryReader reader = new BinaryReader(stream);
+            var reader = new BinaryReader(stream);
 
             byte[] tempBytes = new byte[65536];
 

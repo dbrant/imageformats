@@ -40,10 +40,8 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Image Load(string fileName)
         {
-            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                return Load(f);
-            }
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Load(f);
         }
 
         /// <summary>
@@ -75,7 +73,7 @@ namespace DmitryBrant.ImageFormats
             int modeXBMI = -1;
 
             long bodyChunkPosition = -1;
-            BinaryReader reader = new BinaryReader(stream);
+            var reader = new BinaryReader(stream);
 
             byte[] tempBytes = new byte[65536];
 
@@ -344,7 +342,7 @@ namespace DmitryBrant.ImageFormats
                 totalColors >>= delta;
             }
 
-            ByteRun1Decoder decompressor = new ByteRun1Decoder(stream);
+            var decompressor = new ByteRun1Decoder(stream);
             byte[] bmpData = new byte[(imgWidth + 1) * 4 * imgHeight];
 
             try

@@ -33,10 +33,8 @@ namespace DmitryBrant.ImageFormats
 
         public static Image Load(string fileName)
         {
-            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                return Load(f);
-            }
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return Load(f);
         }
 
         public static Image Load(Stream stream)
@@ -76,7 +74,7 @@ namespace DmitryBrant.ImageFormats
 
             byte[] bmpData = new byte[(MAC_PAINT_WIDTH + 1) * 4 * MAC_PAINT_HEIGHT];
             int x = 0, y = 0;
-            RleReader rleReader = new RleReader(stream);
+            var rleReader = new RleReader(stream);
 
             try
             {

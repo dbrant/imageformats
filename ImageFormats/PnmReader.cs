@@ -42,10 +42,8 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the picture.</returns>
         public static Image Load(string fileName, bool bigEndian = true)
         {
-            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                return Load(f, bigEndian);
-            }
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return Load(f, bigEndian);
         }
 
         /// <summary>

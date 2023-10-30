@@ -41,7 +41,7 @@ namespace DmitryBrant.ImageFormats
         public static Image Load(string fileName)
         {
             Image bmp = null;
-            using (FileStream f = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read))
             {
                 bmp = Load(f);
             }

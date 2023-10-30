@@ -45,10 +45,8 @@ namespace DmitryBrant.ImageFormats
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Image Load(string fileName){
-            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                return Load(f);
-            }
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Load(f);
         }
 
         /// <summary>
@@ -58,7 +56,7 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Image Load(Stream stream)
         {
-            BinaryReader reader = new BinaryReader(stream);
+            var reader = new BinaryReader(stream);
             UInt32 tempDword = Util.BigEndian(reader.ReadUInt32());
             if (tempDword != 0x59a66a95)
                 throw new ImageDecodeException("This is not a valid RAS file.");
@@ -71,7 +69,7 @@ namespace DmitryBrant.ImageFormats
             UInt32 mapType = Util.BigEndian(reader.ReadUInt32());
             int mapLength = (int)Util.BigEndian(reader.ReadUInt32());
 
-            RleReader rleReader = new RleReader(stream, rasType == RAS_TYPE_RLE);
+            var rleReader = new RleReader(stream, rasType == RAS_TYPE_RLE);
 
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767) || (mapLength > 32767))
                 throw new ImageDecodeException("This RAS file appears to have invalid dimensions.");

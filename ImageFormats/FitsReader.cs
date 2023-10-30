@@ -40,10 +40,8 @@ namespace DmitryBrant.ImageFormats
         /// <returns>Bitmap that contains the image that was read.</returns>
         public static Image Load(string fileName)
         {
-            using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                return Load(f);
-            }
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Load(f);
         }
 
         /// <summary>
@@ -85,7 +83,7 @@ namespace DmitryBrant.ImageFormats
                         else if (headerSeq > 0 && !itemStr.StartsWith("XTENSION")) { return bmp; }
                     }
 
-                    if (!itemStr.Contains("=")) { continue; }
+                    if (!itemStr.Contains('=')) { continue; }
 
                     string[] parts = itemStr.Split('=');
                     if (parts.Length < 2) { continue; }
