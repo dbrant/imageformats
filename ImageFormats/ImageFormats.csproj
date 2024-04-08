@@ -1,10 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>DmitryBrant.ImageFormats</RootNamespace>
     <AssemblyName>ImageFormats</AssemblyName>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Title>ImageFormats</Title>
     <Authors>Dmitry Brant</Authors>
     <Copyright>Copyright © Dmitry Brant, 2021-</Copyright>
