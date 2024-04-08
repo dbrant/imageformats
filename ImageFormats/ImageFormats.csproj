@@ -1,19 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net6.0;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+
     <RootNamespace>DmitryBrant.ImageFormats</RootNamespace>
     <AssemblyName>ImageFormats</AssemblyName>
+  </PropertyGroup>    
+
+  <PropertyGroup>
+    <PackageId>DmitryBrant.ImageFormats</PackageId>
+    <Version>1.0.1</Version>
     <Title>ImageFormats</Title>
     <Authors>Dmitry Brant</Authors>
     <Copyright>Copyright © Dmitry Brant, 2021-</Copyright>
     <PackageProjectUrl>https://dmitrybrant.com</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/dbrant/imageformats</RepositoryUrl>
     <Description>Library for decoding old and obscure image formats.</Description>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>    
+    <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom</PackageTags>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net6.0' OR '$(TargetFramework)'=='net8.0'">
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.3" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>

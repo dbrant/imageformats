@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFrameworks>net8.0-windows;net6.0-windows</TargetFrameworks>
     <UseWindowsForms>true</UseWindowsForms>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ImageViewer</RootNamespace>
@@ -12,6 +12,7 @@
     <Authors>Dmitry Brant</Authors>
     <Description></Description>
     <Copyright>Copyright © Dmitry Brant, 2020</Copyright>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
