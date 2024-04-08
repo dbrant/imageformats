@@ -29,7 +29,7 @@ jobs:
       run: dotnet pack -c Release --no-build -o nupkg
 
     - name: Publish
-      run: dotnet publish -p:PublishSingleFile=true -r win-x64 -c Release --self-contained false ImageViewer\ImageViewer.csproj -o dist
+      run: dotnet publish -p:PublishSingleFile=true -r win-x64 -f net8.0-windows -c Release --self-contained false ImageViewer\ImageViewer.csproj -o dist
 
     - name: Upload
       uses: actions/upload-artifact@v4
