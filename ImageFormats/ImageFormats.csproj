@@ -10,10 +10,10 @@
 
   <PropertyGroup>
     <PackageId>DmitryBrant.ImageFormats</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Title>ImageFormats</Title>
     <Authors>Dmitry Brant</Authors>
-    <Copyright>Copyright © Dmitry Brant, 2021-</Copyright>
+    <Copyright>Copyright © Dmitry Brant, 2021+</Copyright>
     <PackageProjectUrl>https://dmitrybrant.com</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/dbrant/imageformats</RepositoryUrl>

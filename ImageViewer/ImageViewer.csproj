@@ -11,7 +11,7 @@
     <Title>ImageViewer</Title>
     <Authors>Dmitry Brant</Authors>
     <Description></Description>
-    <Copyright>Copyright © Dmitry Brant, 2020</Copyright>
+    <Copyright>Copyright © Dmitry Brant, 2020+</Copyright>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
