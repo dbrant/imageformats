@@ -83,7 +83,7 @@ namespace DmitryBrant.ImageFormats
                         else if (headerSeq > 0 && !itemStr.StartsWith("XTENSION")) { return bmp; }
                     }
 
-                    if (!itemStr.Contains('=' + "")) { continue; }
+                    if (!itemStr.Contains("=")) { continue; }
 
                     string[] parts = itemStr.Split('=');
                     if (parts.Length < 2) { continue; }
