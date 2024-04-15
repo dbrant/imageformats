@@ -16,7 +16,7 @@ imageformats
 - .FITS (experimental support)
 - .DICOM (experimental support)
 
-Copyright 2013-2022 Dmitry Brant
+Copyright 2013+ Dmitry Brant
 
 https://dmitrybrant.com
 
