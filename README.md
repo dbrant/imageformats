@@ -1,5 +1,8 @@
 imageformats
 ============
+[![Build](https://github.com/dbrant/imageformats/actions/workflows/dotnet.yml/badge.svg)](https://github.com/dbrant/imageformats/actions/workflows/dotnet.yml)
+[![NuGet](https://img.shields.io/nuget/v/DmitryBrant.ImageFormats.svg)](https://www.nuget.org/packages/DmitryBrant.ImageFormats/)
+[![Downloads](https://img.shields.io/nuget/dt/DmitryBrant.ImageFormats.svg)](https://www.nuget.org/packages/DmitryBrant.ImageFormats/)
 
 .NET modules for decoding obscure graphics formats:
 
