@@ -54,8 +54,9 @@ namespace DmitryBrant.ImageFormats
         /// This is impossible to detect automatically from the file header, so this parameter can be
         /// specified explicitly if you expect this image to use CGA palette information, as defined in
         /// the PCX specification.</param>
+        /// <param name="transparentColorIndex">Explicit color index to be treated as transparent.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Image Load(Stream stream, bool useCgaPalette = false)
+        public static Image Load(Stream stream, bool useCgaPalette = false, int transparentColorIndex = -1)
         {
             var reader = new BinaryReader(stream);
 
@@ -261,12 +262,18 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[4 * (y * imgWidth + x)] = (byte)b;
                                 bmpData[4 * (y * imgWidth + x) + 1] = (byte)b;
                                 bmpData[4 * (y * imgWidth + x) + 2] = (byte)b;
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                            }
+                            else if (i == transparentColorIndex)
+                            {
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0;
                             }
                             else
                             {
                                 bmpData[4 * (y * imgWidth + x)] = colorPalette[i * 3 + 2];
                                 bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[i * 3 + 1];
                                 bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[i * 3];
+                                bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
                             }
                         }
                     }
@@ -286,9 +293,17 @@ namespace DmitryBrant.ImageFormats
                                 for (x = 0; x < imgWidth; x++)
                                 {
                                     i = scanline[x];
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[i * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[i * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[i * 3];
+                                    if (i == transparentColorIndex)
+                                    {
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                    }
+                                    else
+                                    {
+                                        bmpData[4 * (y * imgWidth + x)] = colorPalette[i * 3 + 2];
+                                        bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[i * 3 + 1];
+                                        bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[i * 3];
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                                    }
                                 }
                             }
                         }
@@ -303,13 +318,24 @@ namespace DmitryBrant.ImageFormats
                                 for (x = 0; x < imgWidth; x++)
                                 {
                                     i = scanline[x / 2];
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 4) & 0xF) * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 4) & 0xF) * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 4) & 0xF) * 3];
-                                    x++;
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[(i & 0xF) * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[(i & 0xF) * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[(i & 0xF) * 3];
+                                    if (i == transparentColorIndex)
+                                    {
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                    }
+                                    else
+                                    {
+                                        bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 4) & 0xF) * 3 + 2];
+                                        bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 4) & 0xF) * 3 + 1];
+                                        bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 4) & 0xF) * 3];
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x)] = colorPalette[(i & 0xF) * 3 + 2];
+                                        bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[(i & 0xF) * 3 + 1];
+                                        bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[(i & 0xF) * 3];
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                                    }
                                 }
                             }
                         }
@@ -324,21 +350,38 @@ namespace DmitryBrant.ImageFormats
                                 for (x = 0; x < imgWidth; x++)
                                 {
                                     i = scanline[x / 4];
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 6) & 0x3) * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 6) & 0x3) * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 6) & 0x3) * 3];
-                                    x++;
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 4) & 0x3) * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 4) & 0x3) * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 4) & 0x3) * 3];
-                                    x++;
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 2) & 0x3) * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 2) & 0x3) * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 2) & 0x3) * 3];
-                                    x++;
-                                    bmpData[4 * (y * imgWidth + x)] = colorPalette[(i & 0x3) * 3 + 2];
-                                    bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[(i & 0x3) * 3 + 1];
-                                    bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[(i & 0x3) * 3];
+                                    if (i == transparentColorIndex)
+                                    {
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0;
+                                    }
+                                    else
+                                    {
+                                        bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 6) & 0x3) * 3 + 2];
+                                        bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 6) & 0x3) * 3 + 1];
+                                        bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 6) & 0x3) * 3];
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 4) & 0x3) * 3 + 2];
+                                        bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 4) & 0x3) * 3 + 1];
+                                        bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 4) & 0x3) * 3];
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x)] = colorPalette[((i >> 2) & 0x3) * 3 + 2];
+                                        bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[((i >> 2) & 0x3) * 3 + 1];
+                                        bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[((i >> 2) & 0x3) * 3];
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                                        x++;
+                                        bmpData[4 * (y * imgWidth + x)] = colorPalette[(i & 0x3) * 3 + 2];
+                                        bmpData[4 * (y * imgWidth + x) + 1] = colorPalette[(i & 0x3) * 3 + 1];
+                                        bmpData[4 * (y * imgWidth + x) + 2] = colorPalette[(i & 0x3) * 3];
+                                        bmpData[4 * (y * imgWidth + x) + 3] = 0xFF;
+                                    }
                                 }
                             }
                         }
@@ -364,7 +407,7 @@ namespace DmitryBrant.ImageFormats
                                 bmpData[bytePtr++] = scanlineB[n];
                                 bmpData[bytePtr++] = scanlineG[n];
                                 bmpData[bytePtr++] = scanlineR[n];
-                                bytePtr++;
+                                bmpData[bytePtr++] = 0xFF;
                             }
                         }
                     }
@@ -378,7 +421,7 @@ namespace DmitryBrant.ImageFormats
                 Util.log("Error while processing PCX file: " + e.Message);
             }
 
-            return Util.LoadRgb(imgWidth, imgHeight, bmpData);
+            return Util.LoadRgba(imgWidth, imgHeight, bmpData);
         }
 
 
