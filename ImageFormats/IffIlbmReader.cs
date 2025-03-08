@@ -48,8 +48,10 @@ namespace DmitryBrant.ImageFormats
         /// Reads an ILBM image from a stream.
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
+        /// <param name="resizeForAspect">Whether to resize the image to account for the aspect ratio given in the BMHD header.</param>
+        /// <param name="transparentColorIndex">Explicit color index to be treated as transparent.</param>
         /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Image Load(Stream stream, bool resizeForAspect = false)
+        public static Image Load(Stream stream, bool resizeForAspect = false, int transparentColorIndex = -1)
         {
             int imgWidth = -1;
             int imgHeight = -1;
@@ -61,7 +63,7 @@ namespace DmitryBrant.ImageFormats
             int numColorBits = 0;
             int maskType = 0;
             int compressionType = 0;
-            int transparentColor = 0;
+            int transparentColorBmhd = 0;
             bool haveCAMG = false;
             bool haveSHAM = false;
             bool modeShamLaced = false;
@@ -128,7 +130,7 @@ namespace DmitryBrant.ImageFormats
                     numPlanes = tempBytes[8];
                     maskType = tempBytes[9];
                     compressionType = tempBytes[10];
-                    transparentColor = Util.BigEndian(BitConverter.ToUInt16(tempBytes, 12));
+                    transparentColorBmhd = Util.BigEndian(BitConverter.ToUInt16(tempBytes, 12));
                     xAspect = tempBytes[14];
                     yAspect = tempBytes[15];
 
@@ -467,17 +469,12 @@ namespace DmitryBrant.ImageFormats
                             hamVal = (index >> hamShift) & 0x3;
                             index %= totalColors;
 
-                            /*
-                             * Uncomment if you would like the transparent color to become actually transparent.
-                            if (maskType == 2 && index == transparentColor)
+                            // Uncomment if you would like to use the transparent color given by this header.
+                            if (index == transparentColorIndex /* || (maskType == 2 && index == transparentColorBmhd)*/)
                             {
-                                bmpData[4 * (y * imgWidth + x)] = 0;
-                                bmpData[4 * (y * imgWidth + x) + 1] = 0;
-                                bmpData[4 * (y * imgWidth + x) + 2] = 0;
                                 bmpData[4 * (y * imgWidth + x) + 3] = 0;
                             }
                             else
-                            */
                             {
                                 if (hamVal == 0)
                                 {
@@ -513,17 +510,12 @@ namespace DmitryBrant.ImageFormats
                         {
                             index = (int)imageLines[y][x];
 
-                            /*
-                             * Uncomment if you would like the transparent color to become actually transparent.
-                            if (maskType == 2 && index == transparentColor)
+                            // Uncomment if you would like to use the transparent color given by this header.
+                            if (index == transparentColorIndex /* || (maskType == 2 && index == transparentColorBmhd)*/)
                             {
-                                bmpData[4 * (y * imgWidth + x)] = 0;
-                                bmpData[4 * (y * imgWidth + x) + 1] = 0;
-                                bmpData[4 * (y * imgWidth + x) + 2] = 0;
                                 bmpData[4 * (y * imgWidth + x) + 3] = 0;
                             }
                             else
-                            */
                             {
                                 if (modeHalfBrite)
                                 {
