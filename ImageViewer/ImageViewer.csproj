@@ -12,7 +12,7 @@
     <Authors>Dmitry Brant</Authors>
     <Description></Description>
     <Copyright>Copyright © Dmitry Brant, 2020+</Copyright>
-    <IsPackable>false</IsPackable>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
