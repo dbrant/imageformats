@@ -18,6 +18,7 @@ imageformats
 - .DEEP (TVPaint IFF DEEP images)
 - .FITS (experimental support)
 - .DICOM (experimental support)
+- .ART (AOL Johnson-Grace images)
 
 Copyright 2013+ Dmitry Brant
 

@@ -133,6 +133,10 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = SgiReader.Load(stream);
             }
+            else if ((header[0] == 'J') && (header[1] == 'G') && (header[2] <= 4) && (header[3] >= 0xC))
+            {
+                bmp = ArtReader.Load(stream);
+            }
 
             return bmp;
         }
