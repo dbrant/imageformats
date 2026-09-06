@@ -70,11 +70,11 @@ namespace ImageViewer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to All Files (*.*)|*.*.
+        ///   Looks up a localized string similar to All Files.
         /// </summary>
-        internal static string openDlgFilter {
+        internal static string filterAllFiles {
             get {
-                return ResourceManager.GetString("openDlgFilter", resourceCulture);
+                return ResourceManager.GetString("filterAllFiles", resourceCulture);
             }
         }
         
@@ -88,11 +88,20 @@ namespace ImageViewer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg.
+        ///   Looks up a localized string similar to PNG Files.
         /// </summary>
-        internal static string saveDlgFilter {
+        internal static string filterPngFiles {
             get {
-                return ResourceManager.GetString("saveDlgFilter", resourceCulture);
+                return ResourceManager.GetString("filterPngFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JPG Files.
+        /// </summary>
+        internal static string filterJpgFiles {
+            get {
+                return ResourceManager.GetString("filterJpgFiles", resourceCulture);
             }
         }
         

@@ -120,14 +120,17 @@
   <data name="errorLoadFailed" xml:space="preserve">
     <value>Could not load the specified file.</value>
   </data>
-  <data name="openDlgFilter" xml:space="preserve">
-    <value>All Files (*.*)|*.*</value>
+  <data name="filterAllFiles" xml:space="preserve">
+    <value>All Files</value>
   </data>
   <data name="openDlgTitle" xml:space="preserve">
     <value>Open file...</value>
   </data>
-  <data name="saveDlgFilter" xml:space="preserve">
-    <value>PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg</value>
+  <data name="filterPngFiles" xml:space="preserve">
+    <value>PNG Files</value>
+  </data>
+  <data name="filterJpgFiles" xml:space="preserve">
+    <value>JPG Files</value>
   </data>
   <data name="saveDlgTitle" xml:space="preserve">
     <value>Save as...</value>

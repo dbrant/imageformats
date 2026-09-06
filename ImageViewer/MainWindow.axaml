@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ImageViewer.MainWindow"
+        Width="900" Height="700"
+        DragDrop.AllowDrop="True">
+
+  <DockPanel>
+
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_File">
+        <MenuItem x:Name="mnuOpen" Header="_Open..." InputGesture="Ctrl+O" Click="OnOpenClick" />
+        <MenuItem x:Name="mnuSaveAs" Header="Save _As..." InputGesture="Ctrl+S" Click="OnSaveAsClick" />
+        <Separator />
+        <MenuItem x:Name="mnuExit" Header="E_xit" Click="OnExitClick" />
+      </MenuItem>
+    </Menu>
+
+    <ScrollViewer Background="#FF5A5A5A"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <Image x:Name="pictureBox"
+             Stretch="None"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center" />
+    </ScrollViewer>
+
+  </DockPanel>
+
+</Window>
