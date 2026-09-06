@@ -137,6 +137,10 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = ArtReader.Load(stream);
             }
+            else if (Encoding.ASCII.GetString(header, 0, 25) == "Paint Shop Pro Image File")
+            {
+                bmp = PspReader.Load(stream);
+            }
 
             return bmp;
         }
