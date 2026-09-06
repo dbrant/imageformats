@@ -1,33 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
-
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <RootNamespace>DmitryBrant.ImageFormats</RootNamespace>
     <AssemblyName>ImageFormats</AssemblyName>
   </PropertyGroup>    
 
   <PropertyGroup>
     <PackageId>DmitryBrant.ImageFormats</PackageId>
-    <Version>1.1.1</Version>
+    <Version>1.5.0</Version>
     <Title>ImageFormats</Title>
     <Authors>Dmitry Brant</Authors>
     <Copyright>Copyright © Dmitry Brant, 2021+</Copyright>
     <PackageProjectUrl>https://dmitrybrant.com</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/dbrant/imageformats</RepositoryUrl>
-    <Description>Library for decoding old and obscure image formats.</Description>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Description>Library for decoding old and obscure image formats. Decoders return raw pixel data, to be handed to your favorite imaging library.</Description>
+    <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>    
     <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel</PackageTags>    
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>   
   </PropertyGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="" />

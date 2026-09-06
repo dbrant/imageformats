@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using SixLabors.ImageSharp;
 using System.IO;
 
 /*
@@ -8,21 +7,10 @@ using System.IO;
 Decoder for DICOM images. May not decode all variations of DICOM
 images, since the specification is very broad.
 
-Copyright 2013-2023 Dmitry Brant
-http://dmitrybrant.com
+Copyright 2013+ Dmitry Brant
+https://dmitrybrant.com
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+License: MIT
 */
 
 namespace DmitryBrant.ImageFormats
@@ -37,8 +25,8 @@ namespace DmitryBrant.ImageFormats
         /// Reads a DICOM image from a file.
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
-        /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Image Load(string fileName)
+        /// <returns>ImageData that contains the image that was read.</returns>
+        public static ImageData Load(string fileName)
         {
             using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
             return Load(f);
@@ -48,9 +36,9 @@ namespace DmitryBrant.ImageFormats
         /// Reads a DICOM image from a stream.
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
-        /// <returns>Bitmap that contains the image that was read.</returns>
+        /// <returns>ImageData that contains the image that was read.</returns>
         /// 
-        public static Image Load(Stream stream)
+        public static ImageData Load(Stream stream)
         {
             var reader = new BinaryReader(stream);
             byte[] tempBytes = new byte[256];
@@ -232,10 +220,12 @@ namespace DmitryBrant.ImageFormats
             var dataStream = new MemoryStream(data);
             reader = new BinaryReader(dataStream);
 
-            //detect whether the data is really a JPG image
+            //detect whether the data is really a JPG image. If it is, we don't decode it
+            //ourselves; we hand the encoded bytes back for the caller to pass to a decoder
+            //of their choosing.
             if ((data[0] == 0xFF) && (data[1] == 0xD8) && (data[2] == 0xFF))
             {
-                return Image.Load(dataStream);
+                return ImageData.FromEncoded(imgWidth, imgHeight, data, "jpeg");
             }
 
 

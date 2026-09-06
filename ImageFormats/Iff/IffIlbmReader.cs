@@ -1,5 +1,4 @@
-﻿using System;
-using SixLabors.ImageSharp;
+using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
@@ -8,21 +7,10 @@ using System.Collections.Generic;
 
 Decoder for ILBM (Interleaved Bitmap) images.
 
-Copyright 2020- Dmitry Brant
+Copyright 2020+ Dmitry Brant
 https://dmitrybrant.com
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+License: MIT
 */
 
 namespace DmitryBrant.ImageFormats
@@ -37,8 +25,8 @@ namespace DmitryBrant.ImageFormats
         /// Reads an ILBM image from a file.
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
-        /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Image Load(string fileName)
+        /// <returns>ImageData that contains the image that was read.</returns>
+        public static ImageData Load(string fileName)
         {
             using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
             return Load(f);
@@ -50,8 +38,8 @@ namespace DmitryBrant.ImageFormats
         /// <param name="stream">Stream from which to read the image.</param>
         /// <param name="resizeForAspect">Whether to resize the image to account for the aspect ratio given in the BMHD header.</param>
         /// <param name="transparentColorIndex">Explicit color index to be treated as transparent.</param>
-        /// <returns>Bitmap that contains the image that was read.</returns>
-        public static Image Load(Stream stream, bool resizeForAspect = false, int transparentColorIndex = -1)
+        /// <returns>ImageData that contains the image that was read.</returns>
+        public static ImageData Load(Stream stream, bool resizeForAspect = false, int transparentColorIndex = -1)
         {
             int imgWidth = -1;
             int imgHeight = -1;
@@ -569,18 +557,7 @@ namespace DmitryBrant.ImageFormats
 
             if (resizeForAspect && xAspect != yAspect && xAspect > 0 && yAspect > 0)
             {
-                float aspect = (float)xAspect / yAspect;
-                int newWidth = bmp.Width;
-                int newHeight = bmp.Height;
-                if (aspect >= 1f)
-                {
-                    newWidth = (int)((float)newWidth * aspect);
-                }
-                else
-                {
-                    newHeight = (int)((float)newHeight / aspect);
-                }
-                bmp = bmp.ResizeTo(new Size(newWidth, newHeight));
+                // TODO: resize the image to account for the aspect ratio given in the BMHD header.
             }
 
             return bmp;

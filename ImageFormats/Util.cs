@@ -1,10 +1,18 @@
-﻿using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using System;
 
 namespace DmitryBrant.ImageFormats
 {
+    /// <summary>
+    /// Which axis to mirror an image about.
+    /// </summary>
+    public enum FlipMode
+    {
+        /// <summary>Mirror left to right.</summary>
+        Horizontal,
+        /// <summary>Mirror top to bottom.</summary>
+        Vertical
+    }
+
     public static class Util
     {
         public static void log(string str)
@@ -50,35 +58,74 @@ namespace DmitryBrant.ImageFormats
             return temp;
         }
 
-        public static Image LoadRgba(int width, int height, byte[] data)
+        /// <summary>
+        /// Wrap a buffer of BGRA pixel data, in which the alpha channel is meaningful,
+        /// into an ImageData object.
+        /// </summary>
+        public static ImageData LoadRgba(int width, int height, byte[] data)
         {
-            return Image.LoadPixelData<Bgra32>(data, width, height);
+            return new ImageData(width, height, data);
         }
 
-        public static Image LoadRgb(int width, int height, byte[] data)
+        /// <summary>
+        /// Wrap a buffer of BGRA pixel data, in which the alpha channel was never
+        /// populated, into an ImageData object. The alpha channel is forced to opaque.
+        /// </summary>
+        public static ImageData LoadRgb(int width, int height, byte[] data)
         {
             for (var i = 3; i < data.Length; i += 4)
                 data[i] = 0xFF;
-            return Image.LoadPixelData<Bgra32>(data, width, height);
+            return new ImageData(width, height, data);
         }
 
-        public static Image ResizeTo(this Image original, Size newSize)
+        /// <summary>
+        /// Mirror the given image in place, about each of the given axes in turn.
+        /// </summary>
+        public static void Flip(this ImageData image, params FlipMode[] modes)
         {
-            return original.Clone(x => x.Resize(newSize));
-        }
-
-        public static uint ToArgb(this Color color)
-        {
-            return color.ToPixel<Argb32>().Argb;
-        }
-
-        public static void Flip(this Image image, params FlipMode[] modes)
-        {
-            image.Mutate(x =>
+            foreach (var mode in modes)
             {
-                foreach (var mode in modes)
-                    x.Flip(mode);
-            });
+                if (mode == FlipMode.Horizontal)
+                    FlipHorizontal(image);
+                else
+                    FlipVertical(image);
+            }
+        }
+
+        private static void FlipHorizontal(ImageData image)
+        {
+            byte[] data = image.Data;
+            int stride = image.Stride;
+            var temp = new byte[ImageData.BytesPerPixel];
+            for (int y = 0; y < image.Height; y++)
+            {
+                int left = y * stride;
+                int right = left + stride - ImageData.BytesPerPixel;
+                while (left < right)
+                {
+                    Buffer.BlockCopy(data, left, temp, 0, ImageData.BytesPerPixel);
+                    Buffer.BlockCopy(data, right, data, left, ImageData.BytesPerPixel);
+                    Buffer.BlockCopy(temp, 0, data, right, ImageData.BytesPerPixel);
+                    left += ImageData.BytesPerPixel;
+                    right -= ImageData.BytesPerPixel;
+                }
+            }
+        }
+
+        private static void FlipVertical(ImageData image)
+        {
+            byte[] data = image.Data;
+            int stride = image.Stride;
+            var temp = new byte[stride];
+            int top = 0, bottom = (image.Height - 1) * stride;
+            while (top < bottom)
+            {
+                Buffer.BlockCopy(data, top, temp, 0, stride);
+                Buffer.BlockCopy(data, bottom, data, top, stride);
+                Buffer.BlockCopy(temp, 0, data, bottom, stride);
+                top += stride;
+                bottom -= stride;
+            }
         }
     }
 

@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
-using SixLabors.ImageSharp;
 
 /*
 
@@ -12,20 +11,9 @@ I've found in the wild.  If you find one that it fails to decode,
 let me know!
 
 Copyright 2013+ by Dmitry Brant
-http://dmitrybrant.com
+https://dmitrybrant.com
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+License: MIT
 */
 
 namespace DmitryBrant.ImageFormats
@@ -36,22 +24,22 @@ namespace DmitryBrant.ImageFormats
     public static class PnmReader
     {
         /// <summary>
-        /// Load a portable picture map (either PPM, PGM, or PBM) into a Bitmap object.
+        /// Load a portable picture map (either PPM, PGM, or PBM) into an ImageData object.
         /// </summary>
         /// <param name="fileName">File name of the picture to load.</param>
-        /// <returns>Bitmap that contains the picture.</returns>
-        public static Image Load(string fileName, bool bigEndian = true)
+        /// <returns>ImageData that contains the picture.</returns>
+        public static ImageData Load(string fileName, bool bigEndian = true)
         {
             using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             return Load(f, bigEndian);
         }
 
         /// <summary>
-        /// Load a portable picture map (either PPM, PGM, or PBM) into a Bitmap object.
+        /// Load a portable picture map (either PPM, PGM, or PBM) into an ImageData object.
         /// </summary>
         /// <param name="stream">Stream from which the picture will be loaded.</param>
-        /// <returns>Bitmap that contains the picture.</returns>
-        public static Image Load(Stream inStream, bool bigEndian = true)
+        /// <returns>ImageData that contains the picture.</returns>
+        public static ImageData Load(Stream inStream, bool bigEndian = true)
         {
             int bytePtr = 0;
             byte[] bytes = new byte[inStream.Length];
