@@ -79,6 +79,8 @@ namespace DmitryBrant.ImageFormats
             else if (fileType == "ACBM") { modeAcbm = true; }
 
             byte[] palette = null;
+            byte[] rawCmap = null;
+            byte[] pchgData = null;
             var rowPalette = new List<byte[]>();
 
             while (stream.Position < (stream.Length - 8))
@@ -90,6 +92,13 @@ namespace DmitryBrant.ImageFormats
                 if (chunkName == "BODY" || chunkName == "ABIT")
                 {
                     bodyChunkPosition = stream.Position;
+                }
+
+                if (chunkSize > tempBytes.Length && chunkName != "BODY" && chunkName != "ABIT"
+                    && chunkSize <= stream.Length - stream.Position)
+                {
+                    // A non-BODY chunk that doesn't fit in our buffer, so grow it.
+                    tempBytes = new byte[chunkSize];
                 }
 
                 if (chunkSize <= tempBytes.Length)
@@ -146,6 +155,7 @@ namespace DmitryBrant.ImageFormats
                     {
                         palette[c] = tempBytes[c];
                     }
+                    rawCmap = (byte[])palette.Clone();
 
                     // Check if we need to upscale the color values
                     var scaleMask = (1 << numColorBits) - 1;
@@ -255,6 +265,12 @@ namespace DmitryBrant.ImageFormats
                         rowPalette.Add(rowPal);
                     }
                 }
+                else if (chunkName == "PCHG")
+                {
+                    // Process it after all chunks are read, since it depends on the CMAP.
+                    pchgData = new byte[chunkSize];
+                    Array.Copy(tempBytes, pchgData, chunkSize);
+                }
                 else if (chunkName == "RAST")
                 {
                     // The RAST chunk contains palette information for each line of the image.
@@ -287,6 +303,18 @@ namespace DmitryBrant.ImageFormats
             }
 
             stream.Position = bodyChunkPosition;
+
+            if (pchgData != null && palette != null && imgHeight > 0)
+            {
+                try
+                {
+                    rowPalette = DecodePchg(pchgData, palette, imgHeight);
+                }
+                catch (Exception e)
+                {
+                    Util.log("Error while processing PCHG chunk: " + e.Message);
+                }
+            }
 
             if (imgWidth == -1 || imgHeight == -1 || (numPlanes > 12 && numPlanes != 24 && numPlanes != 32))
             {
@@ -414,6 +442,13 @@ namespace DmitryBrant.ImageFormats
                             }
                         }
                     }
+                }
+
+                if (!modeHAM && !modeHalfBrite && !modePbm && modeXBMI <= 0 && numPlanes <= 8
+                    && rowPalette.Count == 0 && DctvDecoder.IsDctv(imageLines, imgWidth, rawCmap))
+                {
+                    byte[] dctvData = DctvDecoder.Decode(imageLines, imgWidth, rawCmap, out int dctvHeight);
+                    return Util.LoadRgba(imgWidth, dctvHeight, dctvData);
                 }
 
                 for (int y = 0; y < imgHeight; y++)
@@ -561,6 +596,162 @@ namespace DmitryBrant.ImageFormats
             }
 
             return bmp;
+        }
+
+        /// <summary>
+        /// Decodes a PCHG (palette change) chunk into a list of palettes, one for each line of the image.
+        /// Each line's palette is based on the previous line's palette, with that line's changes applied.
+        /// </summary>
+        private static List<byte[]> DecodePchg(byte[] chunk, byte[] basePalette, int imgHeight)
+        {
+            const int PCHGF_12BIT = 1;
+            const int PCHGF_32BIT = 2;
+
+            int compression = Util.BigEndian(BitConverter.ToUInt16(chunk, 0));
+            int flags = Util.BigEndian(BitConverter.ToUInt16(chunk, 2));
+            int startLine = (short)Util.BigEndian(BitConverter.ToUInt16(chunk, 4));
+            int lineCount = Util.BigEndian(BitConverter.ToUInt16(chunk, 6));
+            // followed by:
+            // UWORD ChangedLines;
+            // UWORD MinReg;
+            // UWORD MaxReg;
+            // UWORD MaxChanges;
+            // ULONG TotalChanges;
+            int maxReg = Util.BigEndian(BitConverter.ToUInt16(chunk, 12));
+
+            if ((flags & (PCHGF_12BIT | PCHGF_32BIT)) == 0)
+            {
+                throw new ImageDecodeException("Unsupported PCHG flags: " + flags);
+            }
+
+            byte[] data;
+            if (compression == 0)
+            {
+                data = new byte[chunk.Length - 20];
+                Array.Copy(chunk, 20, data, 0, data.Length);
+            }
+            else if (compression == 1)
+            {
+                int treeSize = (int)Util.BigEndian(BitConverter.ToUInt32(chunk, 20));
+                int originalSize = (int)Util.BigEndian(BitConverter.ToUInt32(chunk, 24));
+                if (treeSize < 2 || 28 + treeSize > chunk.Length || originalSize > 0x1000000)
+                {
+                    throw new ImageDecodeException("Invalid PCHG compression header.");
+                }
+                var tree = new short[treeSize / 2];
+                for (int i = 0; i < tree.Length; i++)
+                {
+                    tree[i] = (short)Util.BigEndian(BitConverter.ToUInt16(chunk, 28 + i * 2));
+                }
+                data = DecompressPchgHuffman(chunk, 28 + treeSize, tree, originalSize);
+            }
+            else
+            {
+                throw new ImageDecodeException("Unsupported PCHG compression: " + compression);
+            }
+
+            // Make sure there's room for every register that may be changed.
+            int numRegs = Math.Max(basePalette.Length / 3, (flags & PCHGF_12BIT) != 0 ? 32 : maxReg + 1);
+            var curPalette = new byte[numRegs * 3];
+            Array.Copy(basePalette, curPalette, basePalette.Length);
+
+            // The data begins with a bit mask of which lines have changes, padded to a multiple of 32 bits.
+            int ptr = ((lineCount + 31) / 32) * 4;
+
+            var rowPalettes = new List<byte[]>();
+            for (int y = 0; y < imgHeight; y++)
+            {
+                int line = y - startLine;
+                if (line >= 0 && line < lineCount && ptr < data.Length && (data[line / 8] & (0x80 >> (line % 8))) != 0)
+                {
+                    if ((flags & PCHGF_12BIT) != 0)
+                    {
+                        // The first count is for registers 0-15, and the second for registers 16-31.
+                        // Each change is a word, where the upper 4 bits are the register, and the lower
+                        // 12 bits are the color, as 0xRGB.
+                        int count16 = data[ptr++];
+                        int count32 = data[ptr++];
+                        for (int i = 0; i < count16 + count32; i++)
+                        {
+                            int change = (data[ptr] << 8) | data[ptr + 1]; ptr += 2;
+                            int reg = (change >> 12) + (i < count16 ? 0 : 16);
+                            curPalette[reg * 3] = (byte)(((change >> 8) & 0xF) * 0x11);
+                            curPalette[reg * 3 + 1] = (byte)(((change >> 4) & 0xF) * 0x11);
+                            curPalette[reg * 3 + 2] = (byte)((change & 0xF) * 0x11);
+                        }
+                    }
+                    else
+                    {
+                        // Each change is a register word, followed by alpha, red, blue, green bytes.
+                        int count = (data[ptr] << 8) | data[ptr + 1]; ptr += 2;
+                        for (int i = 0; i < count; i++)
+                        {
+                            int reg = (data[ptr] << 8) | data[ptr + 1];
+                            if (reg < numRegs)
+                            {
+                                curPalette[reg * 3] = data[ptr + 3];
+                                curPalette[reg * 3 + 1] = data[ptr + 5];
+                                curPalette[reg * 3 + 2] = data[ptr + 4];
+                            }
+                            ptr += 6;
+                        }
+                    }
+                }
+                rowPalettes.Add((byte[])curPalette.Clone());
+            }
+            return rowPalettes;
+        }
+
+        /// <summary>
+        /// Decompresses Huffman-encoded PCHG data. The tree is an array of words, and decoding
+        /// starts at its last element. When reading a 1 bit, a negative node is a (byte) offset
+        /// to the next node, and a non-negative node is a leaf. When reading a 0 bit, we move to
+        /// the previous node, which is a leaf if it has the 0x100 bit set.
+        /// </summary>
+        private static byte[] DecompressPchgHuffman(byte[] src, int srcPtr, short[] tree, int originalSize)
+        {
+            var dest = new byte[originalSize];
+            int destPtr = 0;
+            int treeEnd = tree.Length - 1;
+            int node = treeEnd;
+            int curByte = 0;
+            int bits = 0;
+
+            while (destPtr < originalSize)
+            {
+                if (bits == 0)
+                {
+                    if (srcPtr >= src.Length) { break; }
+                    curByte = src[srcPtr++];
+                    bits = 8;
+                }
+                if ((curByte & 0x80) != 0)
+                {
+                    if (tree[node] >= 0)
+                    {
+                        dest[destPtr++] = (byte)tree[node];
+                        node = treeEnd;
+                    }
+                    else
+                    {
+                        node += tree[node] / 2;
+                        if (node < 0) { break; }
+                    }
+                }
+                else
+                {
+                    node--;
+                    if (node < 0) { break; }
+                    if (tree[node] > 0 && (tree[node] & 0x100) != 0)
+                    {
+                        dest[destPtr++] = (byte)tree[node];
+                        node = treeEnd;
+                    }
+                }
+                curByte <<= 1;
+                bits--;
+            }
+            return dest;
         }
 
         private static int extendTo8Bits(int value, int bits)
