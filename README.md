@@ -20,6 +20,7 @@ imageformats
 - .DICOM (experimental support)
 - .ART (AOL Johnson-Grace images)
 - .PSP, .PSPIMAGE (Paint Shop Pro images)
+- .AWD (Microsoft Fax documents)
 
 Usage
 -----

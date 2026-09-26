@@ -225,6 +225,12 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = PspReader.Load(stream);
             }
+            else if (CompoundFile.HasSignature(header))
+            {
+                // An OLE compound file, which could be one of many things, and only some of
+                // which are images.
+                bmp = AwdReader.LoadIfAwd(stream);
+            }
             return bmp;
         }
     }
