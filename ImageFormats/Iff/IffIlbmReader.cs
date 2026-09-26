@@ -60,6 +60,7 @@ namespace DmitryBrant.ImageFormats
             bool modeHalfBrite = false;
             int halfBriteBit = 0;
             bool modeHAM = false;
+            bool modeLace = false;
             int modeXBMI = -1;
 
             long bodyChunkPosition = -1;
@@ -183,6 +184,7 @@ namespace DmitryBrant.ImageFormats
                     uint mode = Util.BigEndian(BitConverter.ToUInt32(tempBytes, 0));
                     if ((mode & 0x80) != 0) { modeHalfBrite = true; }
                     if ((mode & 0x800) != 0) { modeHAM = true; }
+                    if ((mode & 0x4) != 0) { modeLace = true; }
                     haveCAMG = true;
                 }
                 else if (chunkName == "CTBL")
@@ -444,11 +446,18 @@ namespace DmitryBrant.ImageFormats
                     }
                 }
 
-                if (!modeHAM && !modeHalfBrite && !modePbm && modeXBMI <= 0 && numPlanes <= 8
-                    && rowPalette.Count == 0 && DctvDecoder.IsDctv(imageLines, imgWidth, rawCmap))
+                if (!modeHAM && !modeHalfBrite && !modePbm && modeXBMI <= 0 && numPlanes <= 8 && rowPalette.Count == 0)
                 {
-                    byte[] dctvData = DctvDecoder.Decode(imageLines, imgWidth, rawCmap, out int dctvHeight);
-                    return Util.LoadRgba(imgWidth, dctvHeight, dctvData);
+                    if (numPlanes == 4 && HameDecoder.IsHame(imageLines, imgWidth, rawCmap))
+                    {
+                        byte[] hameData = HameDecoder.Decode(imageLines, imgWidth, rawCmap, modeLace, out int hameWidth);
+                        return Util.LoadRgba(hameWidth, imgHeight, hameData);
+                    }
+                    if (DctvDecoder.IsDctv(imageLines, imgWidth, rawCmap))
+                    {
+                        byte[] dctvData = DctvDecoder.Decode(imageLines, imgWidth, rawCmap, out int dctvHeight);
+                        return Util.LoadRgba(imgWidth, dctvHeight, dctvData);
+                    }
                 }
 
                 for (int y = 0; y < imgHeight; y++)
