@@ -77,7 +77,7 @@ namespace DmitryBrant.ImageFormats
             { 0x00280102, "US" }, { 0x00280103, "US" }, { 0x00280120, "US" }, { 0x00281050, "DS" },
             { 0x00281051, "DS" }, { 0x00281052, "DS" }, { 0x00281053, "DS" }, { 0x00281056, "CS" },
             { 0x00281101, "US" }, { 0x00281102, "US" }, { 0x00281103, "US" }, { 0x00283002, "US" },
-            { 0x00283006, "OW" }, { 0x7FE00001, "OV" }
+            { 0x00283006, "OW" }, { 0x7FE00001, "OV" }, { 0x7FE00002, "OV" }
         };
 
         public byte[] Buffer { get; }
@@ -353,6 +353,20 @@ namespace DmitryBrant.ImageFormats
                         var vals = new double[e.Length / 4];
                         for (int i = 0; i < vals.Length; i++)
                             vals[i] = BitConverter.Int32BitsToSingle((int)ReadUInt32(Buffer, e.Offset + i * 4, LittleEndian));
+                        return vals;
+                    }
+                case "OV":
+                case "UV":
+                case "SV":
+                    {
+                        var vals = new double[e.Length / 8];
+                        for (int i = 0; i < vals.Length; i++)
+                        {
+                            ulong hi = ReadUInt32(Buffer, e.Offset + i * 8 + (LittleEndian ? 4 : 0), LittleEndian);
+                            ulong lo = ReadUInt32(Buffer, e.Offset + i * 8 + (LittleEndian ? 0 : 4), LittleEndian);
+                            ulong v = (hi << 32) | lo;
+                            vals[i] = vr == "SV" ? (long)v : v;
+                        }
                         return vals;
                     }
                 case "FD":

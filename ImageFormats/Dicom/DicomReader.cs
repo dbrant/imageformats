@@ -23,7 +23,8 @@ rescale into real-world units such as Hounsfield units), and a "VOI" transform
 (usually a window center and width) that selects the range of values to
 display. Color images can be RGB, YCbCr, or indexed via a palette.
 
-Only the first frame of a multi-frame image is decoded.
+A file may contain several frames (e.g. an ultrasound or angiography cine loop,
+or an enhanced multi-frame CT or MR series), any of which can be decoded.
 
 Copyright 2013+ Dmitry Brant
 https://dmitrybrant.com
@@ -69,24 +70,119 @@ namespace DmitryBrant.ImageFormats
         private const uint TagPerFrameFunctionalGroups = 0x52009230;
         private const uint TagFrameVoiLutSequence = 0x00289132;
         private const uint TagPixelValueTransformationSequence = 0x00289145;
+        private const uint TagExtendedOffsetTable = 0x7FE00001;
 
         /// <summary>
-        /// Reads a DICOM image from a file.
+        /// Reads a DICOM image from a file. If the file contains more than one frame, the
+        /// first one is read.
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>ImageData that contains the image that was read.</returns>
         public static ImageData? Load(string fileName)
         {
-            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return Load(f);
+            return Load(fileName, 0);
         }
 
         /// <summary>
-        /// Reads a DICOM image from a stream.
+        /// Reads a DICOM image from a stream. If the file contains more than one frame, the
+        /// first one is read.
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>ImageData that contains the image that was read.</returns>
         public static ImageData? Load(Stream stream)
+        {
+            return Load(stream, 0);
+        }
+
+        /// <summary>
+        /// Reads the given frame of a (possibly multi-frame) DICOM image from a file.
+        /// </summary>
+        /// <param name="fileName">Name of the file to read.</param>
+        /// <param name="frame">Zero-based index of the frame to read; see <see cref="GetFrameCount(string)"/>.</param>
+        /// <returns>ImageData that contains the frame that was read.</returns>
+        public static ImageData? Load(string fileName, int frame)
+        {
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Load(f, frame);
+        }
+
+        /// <summary>
+        /// Reads the given frame of a (possibly multi-frame) DICOM image from a stream.
+        /// </summary>
+        /// <param name="stream">Stream from which to read the image.</param>
+        /// <param name="frame">Zero-based index of the frame to read; see <see cref="GetFrameCount(Stream)"/>.</param>
+        /// <returns>ImageData that contains the frame that was read.</returns>
+        public static ImageData? Load(Stream stream, int frame)
+        {
+            var renderer = Open(stream);
+            int count = Guard(() => renderer.FrameCount);
+            if (count == 0)
+                throw new ImageDecodeException("DICOM file does not appear to have any image data.");
+            if (frame < 0 || frame >= count)
+                throw new ArgumentOutOfRangeException(nameof(frame), "Frame " + frame + " is out of range; the image has " + count + " frame(s).");
+            return Guard(() => renderer.Render(frame));
+        }
+
+        /// <summary>
+        /// Gets the number of frames in a DICOM file, or 0 if it contains no image data.
+        /// </summary>
+        /// <param name="fileName">Name of the file to read.</param>
+        public static int GetFrameCount(string fileName)
+        {
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return GetFrameCount(f);
+        }
+
+        /// <summary>
+        /// Gets the number of frames in a DICOM file, or 0 if it contains no image data.
+        /// </summary>
+        /// <param name="stream">Stream from which to read the image.</param>
+        public static int GetFrameCount(Stream stream)
+        {
+            var renderer = Open(stream);
+            return Guard(() => renderer.FrameCount);
+        }
+
+        /// <summary>
+        /// Reads all the frames of a DICOM image from a file. The file is read and parsed
+        /// up front, but each frame is only decoded as the sequence is enumerated.
+        /// </summary>
+        /// <param name="fileName">Name of the file to read.</param>
+        /// <returns>The frames of the image, in order.</returns>
+        public static IEnumerable<ImageData?> LoadFrames(string fileName)
+        {
+            using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return LoadFrames(f);
+        }
+
+        /// <summary>
+        /// Reads all the frames of a DICOM image from a stream. The stream is read and
+        /// parsed up front, but each frame is only decoded as the sequence is enumerated.
+        /// </summary>
+        /// <param name="stream">Stream from which to read the image.</param>
+        /// <returns>The frames of the image, in order.</returns>
+        public static IEnumerable<ImageData?> LoadFrames(Stream stream)
+        {
+            var renderer = Open(stream);
+            int count = Guard(() => renderer.FrameCount);
+            if (count == 0)
+                throw new ImageDecodeException("DICOM file does not appear to have any image data.");
+            return EnumerateFrames(renderer, count);
+        }
+
+        private static IEnumerable<ImageData?> EnumerateFrames(FrameRenderer renderer, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int frame = i;
+                yield return Guard(() => renderer.Render(frame));
+            }
+        }
+
+        /// <summary>
+        /// Reads and parses a DICOM file, ready to decode its frames.
+        /// </summary>
+        private static FrameRenderer Open(Stream stream)
         {
             byte[] buffer;
             using (var ms = new MemoryStream())
@@ -94,14 +190,25 @@ namespace DmitryBrant.ImageFormats
                 stream.CopyTo(ms);
                 buffer = ms.ToArray();
             }
-            try
+            return Guard(() =>
             {
                 var ds = ParseFile(buffer, out string transferSyntax);
-                return new FrameRenderer(ds, transferSyntax).Render(0);
+                return new FrameRenderer(ds, transferSyntax);
+            });
+        }
+
+        /// <summary>
+        /// Runs the given function, turning low-level exceptions caused by malformed data
+        /// that slipped past our checks into ImageDecodeExceptions.
+        /// </summary>
+        private static T Guard<T>(Func<T> func)
+        {
+            try
+            {
+                return func();
             }
             catch (Exception e) when (e is IndexOutOfRangeException || e is ArgumentException || e is OverflowException || e is InvalidDataException)
             {
-                // Malformed data that slipped past our checks.
                 throw new ImageDecodeException("Invalid DICOM file: " + e.Message);
             }
         }
@@ -358,7 +465,7 @@ namespace DmitryBrant.ImageFormats
                 int width = image.Width, height = image.Height;
                 var bgra = new byte[width * height * 4];
                 if (image.Components == 1 && photometric == "PALETTECOLOR")
-                    RenderPalette(samples, bgra);
+                    RenderPalette(samples, bgra, frame);
                 else if (image.Components == 1 || (image.Components == 2))
                     RenderGrayscale(samples, image.Components, bgra, frame);
                 else
@@ -401,41 +508,63 @@ namespace DmitryBrant.ImageFormats
                 return false;
             }
 
+            // For encapsulated pixel data: the fragments, and the range of fragments that make
+            // up each frame, worked out on first use.
+            private List<(int Offset, int Length)>? fragments;
+            private List<(int First, int Last)>? frameRanges;
+
             /// <summary>
-            /// Gathers the bytes of the given frame from the fragments of encapsulated pixel data.
+            /// Works out which fragments of encapsulated pixel data belong to which frame.
             /// </summary>
-            private byte[] GetEncapsulatedFrame(DicomElement pixelData, int frame)
+            private List<(int First, int Last)> GetFrameRanges(DicomElement pixelData)
             {
-                var fragments = pixelData.Fragments!;
+                if (frameRanges != null)
+                    return frameRanges;
                 byte[] b = ds.Buffer;
-                if (fragments.Count > 0 && fragments[0].Length >= 2 && b[fragments[0].Offset] == 0xFF && (b[fragments[0].Offset + 1] == 0xD8 || b[fragments[0].Offset + 1] == 0x4F))
+                var frags = pixelData.Fragments!;
+                if (frags.Count > 0 && frags[0].Length >= 2 && b[frags[0].Offset] == 0xFF && (b[frags[0].Offset + 1] == 0xD8 || b[frags[0].Offset + 1] == 0x4F))
                 {
                     // Some writers leave out the offset table item altogether, and start
                     // right away with the image data.
-                    fragments = new List<(int, int)>(fragments);
-                    fragments.Insert(0, (fragments[0].Offset, 0));
+                    frags = new List<(int, int)>(frags);
+                    frags.Insert(0, (frags[0].Offset, 0));
                 }
-                if (fragments.Count < 2)
-                    return Array.Empty<byte>();
+                fragments = frags;
+                var ranges = new List<(int First, int Last)>();
+                frameRanges = ranges;
+                if (frags.Count < 2)
+                    return ranges;
 
-                // The first fragment is the basic offset table, which may be empty.
-                var offsetTable = new List<long>();
-                var (tableOffset, tableLength) = fragments[0];
-                for (int i = 0; i + 4 <= tableLength; i += 4)
-                    offsetTable.Add(ds.LittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(tableOffset + i)) : BinaryPrimitives.ReadUInt32BigEndian(b.AsSpan(tableOffset + i)));
-
-                int first = 1, last = fragments.Count - 1;
-                if (numFrames > 1)
+                if (numFrames == 1)
                 {
-                    if (offsetTable.Count == numFrames)
+                    ranges.Add((1, frags.Count - 1));
+                    return ranges;
+                }
+
+                // Frame offsets come from the extended offset table if there is one, or else
+                // the basic offset table (the first fragment), either of which may be empty.
+                var offsets = new List<long>();
+                foreach (var v in ds.GetNumbers(TagExtendedOffsetTable))
+                    offsets.Add((long)v);
+                if (offsets.Count != numFrames)
+                {
+                    offsets.Clear();
+                    var (tableOffset, tableLength) = frags[0];
+                    for (int i = 0; i + 4 <= tableLength; i += 4)
+                        offsets.Add(ds.LittleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(tableOffset + i)) : BinaryPrimitives.ReadUInt32BigEndian(b.AsSpan(tableOffset + i)));
+                }
+
+                if (offsets.Count == numFrames)
+                {
+                    // Offsets are relative to the first byte of the first fragment's item tag.
+                    long baseOffset = frags[1].Offset - 8;
+                    for (int f = 0; f < numFrames; f++)
                     {
-                        // Offsets are relative to the first byte of the first fragment's item tag.
-                        long baseOffset = fragments[1].Offset - 8;
-                        long start = offsetTable[frame], end = frame + 1 < numFrames ? offsetTable[frame + 1] : long.MaxValue;
-                        first = -1;
-                        for (int i = 1; i < fragments.Count; i++)
+                        long start = offsets[f], end = f + 1 < numFrames ? offsets[f + 1] : long.MaxValue;
+                        int first = -1, last = -1;
+                        for (int i = 1; i < frags.Count; i++)
                         {
-                            long rel = fragments[i].Offset - 8 - baseOffset;
+                            long rel = frags[i].Offset - 8 - baseOffset;
                             if (rel >= start && rel < end)
                             {
                                 if (first < 0)
@@ -444,47 +573,89 @@ namespace DmitryBrant.ImageFormats
                             }
                         }
                         if (first < 0)
-                            return Array.Empty<byte>();
-                    }
-                    else if (fragments.Count - 1 == numFrames)
-                    {
-                        first = last = frame + 1;
-                    }
-                    else
-                    {
-                        // No help from an offset table; a new frame starts with each fragment
-                        // that begins with a JPEG or JPEG 2000 start marker.
-                        int current = -1;
-                        first = -1;
-                        for (int i = 1; i < fragments.Count; i++)
-                        {
-                            var (o, l) = fragments[i];
-                            bool isStart = l >= 2 && b[o] == 0xFF && (b[o + 1] == 0xD8 || b[o + 1] == 0x4F);
-                            if (isStart || current < 0)
-                                current++;
-                            if (current == frame)
-                            {
-                                if (first < 0)
-                                    first = i;
-                                last = i;
-                            }
-                        }
-                        if (first < 0)
-                            return Array.Empty<byte>();
+                            break; // truncated
+                        ranges.Add((first, last));
                     }
                 }
+                else if (frags.Count - 1 <= numFrames)
+                {
+                    // One fragment per frame (or fewer fragments than frames, if truncated).
+                    for (int i = 1; i < frags.Count; i++)
+                        ranges.Add((i, i));
+                }
+                else
+                {
+                    // No help from an offset table; a new frame starts with each fragment
+                    // that begins with a JPEG or JPEG 2000 start marker.
+                    for (int i = 1; i < frags.Count; i++)
+                    {
+                        var (o, l) = frags[i];
+                        bool isStart = l >= 2 && b[o] == 0xFF && (b[o + 1] == 0xD8 || b[o + 1] == 0x4F);
+                        if (isStart || ranges.Count == 0)
+                        {
+                            if (ranges.Count == numFrames)
+                                break;
+                            ranges.Add((i, i));
+                        }
+                        else
+                        {
+                            ranges[^1] = (ranges[^1].First, i);
+                        }
+                    }
+                }
+                return ranges;
+            }
 
+            /// <summary>
+            /// Gathers the bytes of the given frame from the fragments of encapsulated pixel data.
+            /// </summary>
+            private byte[] GetEncapsulatedFrame(DicomElement pixelData, int frame)
+            {
+                var ranges = GetFrameRanges(pixelData);
+                if (frame >= ranges.Count)
+                    return Array.Empty<byte>();
+                var (first, last) = ranges[frame];
+                var frags = fragments!;
                 int total = 0;
                 for (int i = first; i <= last; i++)
-                    total += fragments[i].Length;
+                    total += frags[i].Length;
                 var data = new byte[total];
                 int p = 0;
                 for (int i = first; i <= last; i++)
                 {
-                    Array.Copy(b, fragments[i].Offset, data, p, fragments[i].Length);
-                    p += fragments[i].Length;
+                    Array.Copy(ds.Buffer, frags[i].Offset, data, p, frags[i].Length);
+                    p += frags[i].Length;
                 }
                 return data;
+            }
+
+            /// <summary>
+            /// The number of frames that are actually present: the stated number of frames,
+            /// unless the file is truncated, or 0 if there's no image data at all.
+            /// </summary>
+            public int FrameCount
+            {
+                get
+                {
+                    var floatData = ds.Get(DicomDataSet.TagFloatPixelData) ?? ds.Get(DicomDataSet.TagDoublePixelData);
+                    var pixelData = ds.Get(DicomDataSet.TagPixelData);
+                    if (pixelData == null && floatData != null)
+                    {
+                        long frameBytes = (long)rows * columns * (floatData.Tag == DicomDataSet.TagDoublePixelData ? 8 : 4);
+                        return frameBytes <= 0 ? 0 : (int)Math.Clamp(floatData.Length / frameBytes, 1, numFrames);
+                    }
+                    if (pixelData == null || (pixelData.Fragments == null && pixelData.Length == 0))
+                        return 0;
+                    if (pixelData.Fragments != null)
+                        return GetFrameRanges(pixelData).Count;
+                    long frameBits = photometric == "YBR_FULL_422" && bitsAllocated == 8 && samplesPerPixel == 3
+                        ? (long)rows * columns * 16
+                        : (long)rows * columns * samplesPerPixel * bitsAllocated;
+                    if (frameBits <= 0)
+                        return 0;
+                    // A partial first frame still counts as one.
+                    return (int)Math.Clamp((long)pixelData.Length * 8 / frameBits, 1, numFrames);
+                }
             }
 
             private CodecImage DecodeCompressed(byte[] data, out bool rawSamples)
@@ -950,7 +1121,7 @@ namespace DmitryBrant.ImageFormats
 
             #region Color
 
-            private void RenderPalette(int[] samples, byte[] bgra)
+            private void RenderPalette(int[] samples, byte[] bgra, int frame)
             {
                 var red = ReadPalette(0x00281101, 0x00281201, 0x00281221);
                 var green = ReadPalette(0x00281102, 0x00281202, 0x00281222);
@@ -958,7 +1129,7 @@ namespace DmitryBrant.ImageFormats
                 if (red == null || green == null || blue == null)
                 {
                     // No usable palette; show the indices as grayscale instead.
-                    RenderGrayscale(samples, 1, bgra, 0);
+                    RenderGrayscale(samples, 1, bgra, frame);
                     return;
                 }
                 int numPixels = bgra.Length / 4;

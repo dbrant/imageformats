@@ -34,7 +34,7 @@ you prefer.
 using DmitryBrant.ImageFormats;
 
 // Detects the format automatically, and returns null if it isn't one we know.
-ImageData image = Picture.Load("picture.tga");
+ImageData image = ImageData.Load("picture.tga");
 ```
 
 The pixels in `image.Data` are stored top-down, one row after another, four bytes per
@@ -60,6 +60,19 @@ var bits = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMod
 for (int y = 0; y < image.Height; y++)
     Marshal.Copy(image.Data, y * image.Stride, bits.Scan0 + (y * bits.Stride), image.Stride);
 bitmap.UnlockBits(bits);
+```
+
+DICOM files can contain more than one frame (for example, an ultrasound cine loop, or
+an enhanced multi-frame CT series). `ImageData.Load` returns the first frame; to get at
+the others, use `DicomReader` directly:
+
+```csharp
+int count = DicomReader.GetFrameCount("series.dcm");
+ImageData frame = DicomReader.Load("series.dcm", count - 1);
+
+// Or decode them all, one at a time, parsing the file only once:
+foreach (ImageData frame in DicomReader.LoadFrames("series.dcm"))
+    ...
 ```
 
 Occasionally a source format stores its pixel data as an embedded image in some other
