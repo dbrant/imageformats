@@ -28,7 +28,7 @@ namespace DmitryBrant.ImageFormats
         public static ImageData Load(Stream stream)
         {
             byte[] headerBytes = new byte[0x80];
-            stream.Read(headerBytes, 0, headerBytes.Length);
+            stream.ReadExactly(headerBytes, 0, headerBytes.Length);
 
             if (headerBytes[0] != 0)
             {
@@ -46,7 +46,7 @@ namespace DmitryBrant.ImageFormats
 
             // Not much other useful stuff in the header...
 
-            stream.Read(headerBytes, 0, 4);
+            stream.ReadExactly(headerBytes, 0, 4);
             uint startMagic = Util.BigEndian(BitConverter.ToUInt32(headerBytes, 0));
             if (startMagic != 0x2)
             {
@@ -104,17 +104,12 @@ namespace DmitryBrant.ImageFormats
         /// <summary>
         /// Helper class for reading a run-length encoded stream in a MacPaint file.
         /// </summary>
-        private class RleReader
+        private class RleReader(Stream stream)
         {
             private int currentByte = 0;
             private int runLength = 0;
             private bool runType;
-            private readonly Stream stream;
-
-            public RleReader(Stream stream)
-            {
-                this.stream = stream;
-            }
+            private readonly Stream stream = stream;
 
             public int ReadByte()
             {

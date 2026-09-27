@@ -94,6 +94,10 @@ namespace DmitryBrant.ImageFormats
 
         private static void FlipHorizontal(ImageData image)
         {
+            if (image.Data == null)
+            {
+                return;
+            }
             byte[] data = image.Data;
             int stride = image.Stride;
             var temp = new byte[ImageData.BytesPerPixel];
@@ -114,6 +118,10 @@ namespace DmitryBrant.ImageFormats
 
         private static void FlipVertical(ImageData image)
         {
+            if (image.Data == null)
+            {
+                return;
+            }
             byte[] data = image.Data;
             int stride = image.Stride;
             var temp = new byte[stride];

@@ -68,25 +68,25 @@ namespace DmitryBrant.ImageFormats
 
             byte[] tempBytes = new byte[65536];
 
-            stream.Read(tempBytes, 0, 4);
+            stream.ReadExactly(tempBytes, 0, 4);
             if (Encoding.ASCII.GetString(tempBytes, 0, 4) != "FORM") { throw new ImageDecodeException("This is not a valid ILBM file."); }
 
             uint chunkSize = Util.BigEndian(reader.ReadUInt32());
 
-            stream.Read(tempBytes, 0, 4);
+            stream.ReadExactly(tempBytes, 0, 4);
             string fileType = Encoding.ASCII.GetString(tempBytes, 0, 4);
             if (fileType != "ILBM" && !fileType.StartsWith("PBM") && fileType != "ACBM") { throw new ImageDecodeException("This is not a valid ILBM file."); }
             if (fileType.StartsWith("PBM")) { modePbm = true; }
             else if (fileType == "ACBM") { modeAcbm = true; }
 
-            byte[] palette = null;
-            byte[] rawCmap = null;
-            byte[] pchgData = null;
+            byte[]? palette = null;
+            byte[]? rawCmap = null;
+            byte[]? pchgData = null;
             var rowPalette = new List<byte[]>();
 
             while (stream.Position < (stream.Length - 8))
             {
-                stream.Read(tempBytes, 0, 4);
+                stream.ReadExactly(tempBytes, 0, 4);
                 string chunkName = Encoding.ASCII.GetString(tempBytes, 0, 4);
                 chunkSize = Util.BigEndian(reader.ReadUInt32());
 
@@ -104,7 +104,7 @@ namespace DmitryBrant.ImageFormats
 
                 if (chunkSize <= tempBytes.Length)
                 {
-                    stream.Read(tempBytes, 0, (int)chunkSize);
+                    stream.ReadExactly(tempBytes, 0, (int)chunkSize);
                 }
                 else
                 {
@@ -390,7 +390,7 @@ namespace DmitryBrant.ImageFormats
                         // The compression type doesn't seem to matter for ACBM images?
                         // if (compressionType == 0)
                         // {
-                        stream.Read(planeBytes, 0, planeBytes.Length);
+                        stream.ReadExactly(planeBytes, 0, planeBytes.Length);
                         // }
                         for (int y = 0; y < imgHeight; y++)
                         {
@@ -412,7 +412,7 @@ namespace DmitryBrant.ImageFormats
                     {
                         if (compressionType == 0)
                         {
-                            stream.Read(scanLine, 0, scanLine.Length);
+                            stream.ReadExactly(scanLine, 0, scanLine.Length);
                         }
                         else if (compressionType == 1)
                         {
@@ -773,18 +773,12 @@ namespace DmitryBrant.ImageFormats
             return result;
         }
 
-        private class BitPlaneReader
+        private class BitPlaneReader(byte[] bytes, int offset)
         {
-            private readonly byte[] bytes;
+            private readonly byte[] bytes = bytes;
             private int currentByte;
-            private int bytePtr;
+            private int bytePtr = offset;
             private int currentBit;
-
-            public BitPlaneReader(byte[] bytes, int offset)
-            {
-                this.bytes = bytes;
-                bytePtr = offset;
-            }
 
             public int NextBit()
             {
@@ -802,14 +796,9 @@ namespace DmitryBrant.ImageFormats
         /// <summary>
         /// Helper class for reading a run-length encoded stream in an ILBM file.
         /// </summary>
-        private class ByteRun1Decoder
+        private class ByteRun1Decoder(Stream stream)
         {
-            private readonly Stream stream;
-
-            public ByteRun1Decoder(Stream stream)
-            {
-                this.stream = stream;
-            }
+            private readonly Stream stream = stream;
 
             public void ReadNextBytes(byte[] bytes, int bytesNeeded)
             {

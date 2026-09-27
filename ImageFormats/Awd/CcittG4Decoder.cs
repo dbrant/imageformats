@@ -276,22 +276,14 @@ namespace DmitryBrant.ImageFormats
             }
         }
 
-        private class BitReader
+        private class BitReader(byte[] data, int offset, int length, bool lsbFirst)
         {
-            private readonly byte[] data;
-            private readonly int end;
-            private readonly bool lsbFirst;
-            private int pos;
+            private readonly byte[] data = data;
+            private readonly int end = Math.Min(offset + length, data.Length);
+            private readonly bool lsbFirst = lsbFirst;
+            private int pos = offset;
             private int bit = 8;
             private int current;
-
-            public BitReader(byte[] data, int offset, int length, bool lsbFirst)
-            {
-                this.data = data;
-                pos = offset;
-                end = Math.Min(offset + length, data.Length);
-                this.lsbFirst = lsbFirst;
-            }
 
             public int Read()
             {

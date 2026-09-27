@@ -76,26 +76,26 @@ namespace DmitryBrant.ImageFormats
                 str = ReadUntil(stream, '"');
                 str = ReadUntil(stream, '"');
 
-                sampleChar = str.Substring(0, charsPerPixel);
+                sampleChar = str[..charsPerPixel];
                 strArray = str.Split(whitespacequote, StringSplitOptions.RemoveEmptyEntries);
                 
-                sampleValue = strArray[strArray.Length - 1];
-                if (sampleValue.ToLower().Contains("none"))
+                sampleValue = strArray[^1];
+                if (sampleValue.Contains("none", StringComparison.OrdinalIgnoreCase))
                 {
                     intColor = 0x0;
                 }
-                else if (sampleValue.StartsWith("#"))
+                else if (sampleValue.StartsWith('#'))
                 {
                     sampleValue = sampleValue.Replace("#", "");
                     longColor = Convert.ToUInt64(sampleValue, 16);
                     if (sampleValue.Length > 6)
                     {
                         intColor = 0xFF000000;
-                        intColor |= (UInt32)((longColor & 0xFF0000000000) >> 24);
-                        intColor |= (UInt32)((longColor & 0xFF000000) >> 16);
-                        intColor |= (UInt32)((longColor & 0xFF00) >> 8);
+                        intColor |= (uint)((longColor & 0xFF0000000000) >> 24);
+                        intColor |= (uint)((longColor & 0xFF000000) >> 16);
+                        intColor |= (uint)((longColor & 0xFF00) >> 8);
                     }
-                    else { intColor = (UInt32)longColor | 0xFF000000; }
+                    else { intColor = (uint)longColor | 0xFF000000; }
                 }
                 else if (!ColorNames.TryGetValue(sampleValue, out intColor))
                 {

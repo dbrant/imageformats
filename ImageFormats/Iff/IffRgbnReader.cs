@@ -47,12 +47,12 @@ namespace DmitryBrant.ImageFormats
 
             byte[] tempBytes = new byte[65536];
 
-            stream.Read(tempBytes, 0, 4);
+            stream.ReadExactly(tempBytes, 0, 4);
             if (Encoding.ASCII.GetString(tempBytes, 0, 4) != "FORM") { throw new ImageDecodeException("This is not a valid RGBN file."); }
 
             uint chunkSize = Util.BigEndian(reader.ReadUInt32());
 
-            stream.Read(tempBytes, 0, 4);
+            stream.ReadExactly(tempBytes, 0, 4);
             string fileType = Encoding.ASCII.GetString(tempBytes, 0, 4);
             if (fileType != "RGBN" && fileType != "RGB8") { throw new ImageDecodeException("This is not a valid RGBN file."); }
 
@@ -60,7 +60,7 @@ namespace DmitryBrant.ImageFormats
 
             while (stream.Position < stream.Length)
             {
-                stream.Read(tempBytes, 0, 4);
+                stream.ReadExactly(tempBytes, 0, 4);
                 string chunkName = Encoding.ASCII.GetString(tempBytes, 0, 4);
                 chunkSize = Util.BigEndian(reader.ReadUInt32());
 
@@ -73,7 +73,7 @@ namespace DmitryBrant.ImageFormats
 
                 if (chunkSize <= tempBytes.Length)
                 {
-                    stream.Read(tempBytes, 0, (int)chunkSize);
+                    stream.ReadExactly(tempBytes, 0, (int)chunkSize);
                 }
                 else
                 {
@@ -108,7 +108,7 @@ namespace DmitryBrant.ImageFormats
                     {
                         for (int x = 0; x < imgWidth; x++)
                         {
-                            stream.Read(tempBytes, 0, 4);
+                            stream.ReadExactly(tempBytes, 0, 4);
                             uint val = Util.BigEndian(BitConverter.ToUInt32(tempBytes, 0));
 
                             if (isRgb8)
@@ -192,7 +192,7 @@ namespace DmitryBrant.ImageFormats
 
                 if (isRgb8)
                 {
-                    stream.Read(tempBytes, 0, 4);
+                    stream.ReadExactly(tempBytes, 0, 4);
                     curValue = Util.BigEndian(BitConverter.ToUInt32(tempBytes, 0));
                     bool genLock = (curValue & 0x80) != 0;
                     curCount = (int)(curValue & 0x7F);
@@ -200,7 +200,7 @@ namespace DmitryBrant.ImageFormats
                 }
                 else
                 {
-                    stream.Read(tempBytes, 0, 2);
+                    stream.ReadExactly(tempBytes, 0, 2);
                     curValue = Util.BigEndian(BitConverter.ToUInt16(tempBytes, 0));
                     bool genLock = (curValue & 0x8) != 0;
                     curCount = (int)(curValue & 0x7);
@@ -212,7 +212,7 @@ namespace DmitryBrant.ImageFormats
                     curCount = stream.ReadByte();
                     if (curCount == 0)
                     {
-                        stream.Read(tempBytes, 0, 2);
+                        stream.ReadExactly(tempBytes, 0, 2);
                         curCount = Util.BigEndian(BitConverter.ToUInt16(tempBytes, 0));
                     }
                 }

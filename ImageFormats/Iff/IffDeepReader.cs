@@ -53,18 +53,18 @@ namespace DmitryBrant.ImageFormats
 
             byte[] tempBytes = new byte[65536];
 
-            stream.Read(tempBytes, 0, 4);
+            stream.ReadExactly(tempBytes, 0, 4);
             if (Encoding.ASCII.GetString(tempBytes, 0, 4) != "FORM") { throw new ImageDecodeException("This is not a valid DEEP file."); }
 
             uint chunkSize = Util.BigEndian(reader.ReadUInt32());
 
-            stream.Read(tempBytes, 0, 4);
+            stream.ReadExactly(tempBytes, 0, 4);
             string fileType = Encoding.ASCII.GetString(tempBytes, 0, 4);
             if (fileType != "DEEP" && fileType != "TVPP") { throw new ImageDecodeException("This is not a valid DEEP file."); }
 
             while (stream.Position < stream.Length)
             {
-                stream.Read(tempBytes, 0, 4);
+                stream.ReadExactly(tempBytes, 0, 4);
                 string chunkName = Encoding.ASCII.GetString(tempBytes, 0, 4);
                 chunkSize = Util.BigEndian(reader.ReadUInt32());
 
@@ -73,13 +73,13 @@ namespace DmitryBrant.ImageFormats
                 if (chunkName == "DBOD")
                 {
                     bodyChunk = new byte[chunkSize];
-                    stream.Read(bodyChunk, 0, (int)chunkSize);
+                    stream.ReadExactly(bodyChunk, 0, (int)chunkSize);
                     break;
                 }
 
                 if (chunkSize <= tempBytes.Length)
                 {
-                    stream.Read(tempBytes, 0, (int)chunkSize);
+                    stream.ReadExactly(tempBytes, 0, (int)chunkSize);
                 }
                 else
                 {

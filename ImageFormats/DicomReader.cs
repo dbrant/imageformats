@@ -26,7 +26,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>ImageData that contains the image that was read.</returns>
-        public static ImageData Load(string fileName)
+        public static ImageData? Load(string fileName)
         {
             using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
             return Load(f);
@@ -38,13 +38,13 @@ namespace DmitryBrant.ImageFormats
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>ImageData that contains the image that was read.</returns>
         /// 
-        public static ImageData Load(Stream stream)
+        public static ImageData? Load(Stream stream)
         {
             var reader = new BinaryReader(stream);
             byte[] tempBytes = new byte[256];
 
             stream.Seek(0x80, SeekOrigin.Current);
-            stream.Read(tempBytes, 0, 0x10);
+            stream.ReadExactly(tempBytes, 0, 0x10);
 
             //check signature...
             string signature = System.Text.Encoding.ASCII.GetString(tempBytes, 0, 4);
@@ -64,7 +64,7 @@ namespace DmitryBrant.ImageFormats
                 throw new ImageDecodeException("Meta group is a bit too long. May not be a valid DICOM file.");
 
             tempBytes = new byte[metaGroupLen];
-            stream.Read(tempBytes, 0, metaGroupLen);
+            stream.ReadExactly(tempBytes, 0, metaGroupLen);
 
             //convert the whole thing to a string, and search it for clues
             string metaGroupStr = System.Text.Encoding.ASCII.GetString(tempBytes);
@@ -122,7 +122,7 @@ namespace DmitryBrant.ImageFormats
                     }
                     else
                     {
-                        skipElement(reader, groupNumber, elementNumber, bigEndian, explicitVR);
+                        SkipElement(reader, groupNumber, elementNumber, bigEndian, explicitVR);
                     }
                 }
                 else if (groupNumber == 0x7FE0)
@@ -147,22 +147,22 @@ namespace DmitryBrant.ImageFormats
                     }
                     else
                     {
-                        skipElement(reader, groupNumber, elementNumber, bigEndian, explicitVR);
+                        SkipElement(reader, groupNumber, elementNumber, bigEndian, explicitVR);
                     }
                 }
                 else
                 {
-                    skipElement(reader, groupNumber, elementNumber, bigEndian, explicitVR);
+                    SkipElement(reader, groupNumber, elementNumber, bigEndian, explicitVR);
                 }
             }
 
 
-            byte[] data = null;
+            byte[]? data = null;
 
             if (dataLength > 0)
             {
                 data = new byte[dataLength];
-                stream.Read(data, 0, dataLength);
+                stream.ReadExactly(data, 0, dataLength);
             }
             else if (dataLength == -1)
             {
@@ -170,7 +170,7 @@ namespace DmitryBrant.ImageFormats
                 //we'll have to read the data by sequential packets
 
                 var dataSegments = new List<byte[]>();
-                UInt16 tempShort;
+                ushort tempShort;
                 int segmentLen = 0;
 
                 while (stream.Position < stream.Length)
@@ -191,7 +191,7 @@ namespace DmitryBrant.ImageFormats
                     if (segmentLen > 0)
                     {
                         byte[] segment = new byte[segmentLen];
-                        stream.Read(segment, 0, segmentLen);
+                        stream.ReadExactly(segment, 0, segmentLen);
 
                         dataSegments.Add(segment);
                     }
@@ -213,7 +213,7 @@ namespace DmitryBrant.ImageFormats
             }
 
 
-            if (dataLength == 0)
+            if (dataLength == 0 || data == null)
                 throw new ImageDecodeException("DICOM file does not appear to have any image data.");
 
 
@@ -349,18 +349,18 @@ namespace DmitryBrant.ImageFormats
 
 
 
-        private static UInt16 getGroupNumber(BinaryReader reader, bool bigEndian)
+        private static ushort getGroupNumber(BinaryReader reader, bool bigEndian)
         {
-            UInt16 ret = Util.LittleEndian(reader.ReadUInt16());
+            var ret = Util.LittleEndian(reader.ReadUInt16());
             if (ret != 0x2)
                 if (bigEndian)
-                    ret = Util.BigEndian((UInt16)ret);
+                    ret = Util.BigEndian((ushort)ret);
             return ret;
         }
 
-        private static UInt16 getShort(BinaryReader reader, int groupNumber, bool bigEndian)
+        private static ushort getShort(BinaryReader reader, int groupNumber, bool bigEndian)
         {
-            UInt16 ret = 0;
+            ushort ret = 0;
             if (groupNumber == 0x2)
             {
                 ret = Util.LittleEndian(reader.ReadUInt16());
@@ -373,9 +373,9 @@ namespace DmitryBrant.ImageFormats
             return ret;
         }
 
-        private static UInt32 getInt(BinaryReader reader, int groupNumber, bool bigEndian)
+        private static uint getInt(BinaryReader reader, int groupNumber, bool bigEndian)
         {
-            UInt32 ret = 0;
+            uint ret = 0;
             if (groupNumber == 0x2)
             {
                 ret = Util.LittleEndian(reader.ReadUInt32());
@@ -390,7 +390,7 @@ namespace DmitryBrant.ImageFormats
 
         private static float getFloat(BinaryReader reader, int groupNumber, bool bigEndian)
         {
-            UInt32 ret = 0;
+            uint ret = 0;
             if (groupNumber == 0x2)
             {
                 ret = Util.LittleEndian(reader.ReadUInt32());
@@ -403,9 +403,9 @@ namespace DmitryBrant.ImageFormats
             return BitConverter.ToSingle(BitConverter.GetBytes(ret), 0);
         }
 
-        private static UInt32 getNumeric(BinaryReader reader, int groupNumber, bool bigEndian, bool explicitVR)
+        private static uint getNumeric(BinaryReader reader, int groupNumber, bool bigEndian, bool explicitVR)
         {
-            UInt32 ret = 0;
+            uint ret = 0;
             if (explicitVR)
             {
                 int v1 = reader.ReadByte(), v2 = reader.ReadByte();
@@ -458,7 +458,7 @@ namespace DmitryBrant.ImageFormats
             return ret;
         }
 
-        private static void skipElement(BinaryReader reader, int groupNumber, int elementNumber, bool bigEndian, bool explicitVR)
+        private static void SkipElement(BinaryReader reader, int groupNumber, int elementNumber, bool bigEndian, bool explicitVR)
         {
             int len;
             string str = "";

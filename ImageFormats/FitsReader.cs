@@ -27,7 +27,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>
         /// <returns>ImageData that contains the image that was read.</returns>
-        public static ImageData Load(string fileName)
+        public static ImageData? Load(string fileName)
         {
             using var f = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
             return Load(f);
@@ -38,7 +38,7 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         /// <param name="stream">Stream from which to read the image.</param>
         /// <returns>ImageData that contains the image that was read.</returns>
-        public static ImageData Load(Stream stream)
+        public static ImageData? Load(Stream stream)
         {
             long fileSize = 0;
             int imgWidth = 0;
@@ -52,10 +52,10 @@ namespace DmitryBrant.ImageFormats
         /// <param name="stream">Stream from which to read the image.</param>
         /// <param name="fileSize">Reference to a long that will receive the size of the file.</param>
         /// <returns>ImageData that contains the image that was read.</returns>
-        public static ImageData Load(Stream stream, bool wantImage, ref long fileSize, ref int imgWidth, ref int imgHeight)
+        public static ImageData? Load(Stream stream, bool wantImage, ref long fileSize, ref int imgWidth, ref int imgHeight)
         {
             byte[] tempBytes = new byte[HEADER_ITEM_LENGTH];
-            ImageData bmp = null;
+            ImageData? bmp = null;
             int maxHeaderItems = 1000;
             fileSize = 0;
 
@@ -81,7 +81,7 @@ namespace DmitryBrant.ImageFormats
                     itemStr = Encoding.ASCII.GetString(tempBytes, 0, HEADER_ITEM_LENGTH);
                     if (itemStr.IndexOf('/') > 0)
                     {
-                        itemStr = itemStr.Substring(0, itemStr.IndexOf('/'));
+                        itemStr = itemStr[..itemStr.IndexOf('/')];
                     }
                     itemStr = itemStr.Trim();
                     if (itemStr == "END") { break; }
@@ -92,7 +92,7 @@ namespace DmitryBrant.ImageFormats
                         else if (headerSeq > 0 && !itemStr.StartsWith("XTENSION")) { return bmp; }
                     }
 
-                    if (!itemStr.Contains("=")) { continue; }
+                    if (!itemStr.Contains('=')) { continue; }
 
                     string[] parts = itemStr.Split('=');
                     if (parts.Length < 2) { continue; }
@@ -196,9 +196,9 @@ namespace DmitryBrant.ImageFormats
             return bmp;
         }
 
-        private static ImageData LoadImageData(Stream stream, int bitsPerPixel, int numAxes, int width, int height, int depth, float[] dataMin, float[] dataMax)
+        private static ImageData? LoadImageData(Stream stream, int bitsPerPixel, int numAxes, int width, int height, int depth, float[] dataMin, float[] dataMax)
         {
-            byte[] bmpData = null;
+            byte[]? bmpData = null;
             float f;
 
             var reader = new ElementReader(stream, bitsPerPixel);
@@ -305,18 +305,11 @@ namespace DmitryBrant.ImageFormats
             return BitConverter.ToSingle(bytes, 0);
         }
 
-        private class ElementReader
+        private class ElementReader(Stream stream, int bitsPerElement)
         {
-            private Stream stream;
-            private int bitsPerElement;
-            private byte[] bytes;
-
-            public ElementReader(Stream stream, int bitsPerElement)
-            {
-                this.stream = stream;
-                this.bitsPerElement = bitsPerElement;
-                bytes = new byte[16];
-            }
+            private readonly Stream stream = stream;
+            private readonly int bitsPerElement = bitsPerElement;
+            private readonly byte[] bytes = new byte[16];
 
             public float ReadElement()
             {

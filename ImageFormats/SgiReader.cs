@@ -40,13 +40,13 @@ namespace DmitryBrant.ImageFormats
         {
             var reader = new BinaryReader(stream);
 
-            UInt16 magic = Util.BigEndian(reader.ReadUInt16());
+            ushort magic = Util.BigEndian(reader.ReadUInt16());
             if (magic != 0x1DA)
                 throw new ImageDecodeException("Not a valid SGI file.");
 
             int compressionType = stream.ReadByte();
             int bytesPerComponent = stream.ReadByte();
-            UInt16 dimension = Util.BigEndian(reader.ReadUInt16());
+            ushort dimension = Util.BigEndian(reader.ReadUInt16());
 
             if(compressionType > 1)
                 throw new ImageDecodeException("Unsupported compression type.");
@@ -58,8 +58,8 @@ namespace DmitryBrant.ImageFormats
             int imgWidth = Util.BigEndian(reader.ReadUInt16());
             int imgHeight = Util.BigEndian(reader.ReadUInt16());
             int zSize = Util.BigEndian(reader.ReadUInt16());
-            UInt32 pixMin = Util.BigEndian(reader.ReadUInt32());
-            UInt32 pixMax = Util.BigEndian(reader.ReadUInt32());
+            uint pixMin = Util.BigEndian(reader.ReadUInt32());
+            uint pixMax = Util.BigEndian(reader.ReadUInt32());
 
             if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
                 throw new ImageDecodeException("This SGI file appears to have invalid dimensions.");
@@ -68,15 +68,15 @@ namespace DmitryBrant.ImageFormats
 
             string imgName = System.Text.Encoding.ASCII.GetString(reader.ReadBytes(80)).Replace("\0", "").Trim();
 
-            UInt32 colorMapFormat = Util.BigEndian(reader.ReadUInt32());
+            uint colorMapFormat = Util.BigEndian(reader.ReadUInt32());
 
             stream.Seek(404, SeekOrigin.Current);
 
-            UInt32[] offsets = null;
+            uint[] offsets = [];
             if (compressionType == 1)
             {
                 int offsetTableLen = imgHeight * zSize;
-                offsets = new UInt32[offsetTableLen];
+                offsets = new uint[offsetTableLen];
                 for(int i=0; i<offsetTableLen; i++)
                     offsets[i] = Util.BigEndian(reader.ReadUInt32());
                 stream.Seek(offsets[0], SeekOrigin.Begin);

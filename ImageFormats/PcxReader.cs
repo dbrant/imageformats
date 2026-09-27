@@ -89,7 +89,7 @@ namespace DmitryBrant.ImageFormats
                     0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF, };
 
             byte[] colorPalette = new byte[48];
-            stream.Read(colorPalette, 0, 48);
+            stream.ReadExactly(colorPalette, 0, 48);
             stream.ReadByte();
 
             int numPlanes = stream.ReadByte();
@@ -102,7 +102,7 @@ namespace DmitryBrant.ImageFormats
             {
                 colorPalette = new byte[768];
                 stream.Seek(-768, SeekOrigin.End);
-                stream.Read(colorPalette, 0, 768);
+                stream.ReadExactly(colorPalette, 0, 768);
             }
 
             if (imgBpp == 1 && numPlanes == 1 && usePalette)
@@ -522,16 +522,11 @@ namespace DmitryBrant.ImageFormats
         /// <summary>
         /// Helper class for reading a run-length encoded stream in a PCX file.
         /// </summary>
-        private class RleReader
+        private class RleReader(Stream stream)
         {
             private int currentByte = 0;
             private int runLength = 0;
-            private readonly Stream stream;
-
-            public RleReader(Stream stream)
-            {
-                this.stream = stream;
-            }
+            private readonly Stream stream = stream;
 
             public int ReadByte()
             {

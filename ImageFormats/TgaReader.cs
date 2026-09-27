@@ -44,18 +44,18 @@ namespace DmitryBrant.ImageFormats
         {
             BinaryReader reader = new(stream);
 
-            UInt32[] palette = null;
+            uint[] palette = [];
 
             byte idFieldLength = (byte)stream.ReadByte();
             byte colorMap = (byte)stream.ReadByte();
             byte imageType = (byte)stream.ReadByte();
-            UInt16 colorMapOffset = Util.LittleEndian(reader.ReadUInt16());
-            UInt16 colorsUsed = Util.LittleEndian(reader.ReadUInt16());
+            ushort colorMapOffset = Util.LittleEndian(reader.ReadUInt16());
+            ushort colorsUsed = Util.LittleEndian(reader.ReadUInt16());
             byte bitsPerColorMap = (byte)stream.ReadByte();
-            UInt16 xCoord = Util.LittleEndian(reader.ReadUInt16());
-            UInt16 yCoord = Util.LittleEndian(reader.ReadUInt16());
-            UInt16 imgWidth = Util.LittleEndian(reader.ReadUInt16());
-            UInt16 imgHeight = Util.LittleEndian(reader.ReadUInt16());
+            ushort xCoord = Util.LittleEndian(reader.ReadUInt16());
+            ushort yCoord = Util.LittleEndian(reader.ReadUInt16());
+            ushort imgWidth = Util.LittleEndian(reader.ReadUInt16());
+            ushort imgHeight = Util.LittleEndian(reader.ReadUInt16());
             byte bitsPerPixel = (byte)stream.ReadByte();
             byte imgFlags = (byte)stream.ReadByte();
 
@@ -65,7 +65,7 @@ namespace DmitryBrant.ImageFormats
             if (idFieldLength > 0)
             {
                 byte[] idBytes = new byte[idFieldLength];
-                stream.Read(idBytes, 0, idFieldLength);
+                stream.ReadExactly(idBytes, 0, idFieldLength);
                 string idStr = System.Text.Encoding.ASCII.GetString(idBytes);
 
                 //do something with the ID string...
@@ -153,7 +153,7 @@ namespace DmitryBrant.ImageFormats
                         switch (bitsPerPixel)
                         {
                             case 8:
-                                stream.Read(scanline, 0, scanline.Length);
+                                stream.ReadExactly(scanline, 0, scanline.Length);
                                 if (imageType == 1)
                                 {
                                     for (int x = 0; x < imgWidth; x++)
@@ -190,7 +190,7 @@ namespace DmitryBrant.ImageFormats
                                 }
                                 break;
                             case 24:
-                                stream.Read(scanline, 0, scanline.Length);
+                                stream.ReadExactly(scanline, 0, scanline.Length);
                                 for (int x = 0; x < imgWidth; x++)
                                 {
                                     bmpData[4 * (y * imgWidth + x)] = scanline[x * 3];
@@ -200,7 +200,7 @@ namespace DmitryBrant.ImageFormats
                                 }
                                 break;
                             case 32:
-                                stream.Read(scanline, 0, scanline.Length);
+                                stream.ReadExactly(scanline, 0, scanline.Length);
                                 for (int x = 0; x < imgWidth; x++)
                                 {
                                     bmpData[4 * (y * imgWidth + x)] = scanline[x * 4];
@@ -228,7 +228,7 @@ namespace DmitryBrant.ImageFormats
                             switch (bitsPerPixel)
                             {
                                 case 8:
-                                    stream.Read(scanline, 0, i * bytesPerPixel);
+                                    stream.ReadExactly(scanline, 0, i * bytesPerPixel);
                                     if (imageType == 9)
                                     {
                                         for (int j = 0; j < i; j++)
@@ -271,7 +271,7 @@ namespace DmitryBrant.ImageFormats
                                     }
                                     break;
                                 case 24:
-                                    stream.Read(scanline, 0, i * bytesPerPixel);
+                                    stream.ReadExactly(scanline, 0, i * bytesPerPixel);
                                     for (int j = 0; j < i; j++)
                                     {
                                         bmpData[4 * (y * imgWidth + x)] = scanline[j * 3];
@@ -283,7 +283,7 @@ namespace DmitryBrant.ImageFormats
                                     }
                                     break;
                                 case 32:
-                                    stream.Read(scanline, 0, i * bytesPerPixel);
+                                    stream.ReadExactly(scanline, 0, i * bytesPerPixel);
                                     for (int j = 0; j < i; j++)
                                     {
                                         bmpData[4 * (y * imgWidth + x)] = scanline[j * 4];

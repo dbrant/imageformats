@@ -48,19 +48,19 @@ namespace DmitryBrant.ImageFormats
         /// Raw pixel data, top-down, four bytes per pixel in blue, green, red, alpha
         /// order. Null if <see cref="IsEncoded"/> is true.
         /// </summary>
-        public byte[] Data { get; }
+        public byte[]? Data { get; }
 
         /// <summary>
         /// The image data in its original encoding, if this library does not decode it
         /// to raw pixels itself. Null unless <see cref="IsEncoded"/> is true.
         /// </summary>
-        public byte[] EncodedData { get; }
+        public byte[]? EncodedData { get; }
 
         /// <summary>
         /// Lowercase name of the encoding of <see cref="EncodedData"/>, e.g. "jpeg".
         /// Null unless <see cref="IsEncoded"/> is true.
         /// </summary>
-        public string EncodedFormat { get; }
+        public string? EncodedFormat { get; }
 
         /// <summary>
         /// True if this image is provided as <see cref="EncodedData"/> in its original
@@ -82,8 +82,6 @@ namespace DmitryBrant.ImageFormats
         {
             if (width <= 0 || height <= 0)
                 throw new ArgumentException("Invalid image dimensions: " + width + " x " + height);
-            if (data == null)
-                throw new ArgumentNullException(nameof(data));
             if (data.Length < (long)width * height * BytesPerPixel)
                 throw new ArgumentException("Pixel buffer is too small for the given dimensions.");
 
@@ -108,11 +106,11 @@ namespace DmitryBrant.ImageFormats
         /// <param name="height">Height of the image in pixels, or 0 if not known.</param>
         /// <param name="encodedData">The encoded bytes of the image.</param>
         /// <param name="encodedFormat">Lowercase name of the encoding, e.g. "jpeg".</param>
-        public static ImageData FromEncoded(int width, int height, byte[] encodedData, string encodedFormat)
+        public static ImageData? FromEncoded(int width, int height, byte[] encodedData, string encodedFormat)
         {
-            if (encodedData == null)
-                throw new ArgumentNullException(nameof(encodedData));
-            return new ImageData(width, height, encodedData, encodedFormat);
+            return encodedData == null
+                ? throw new ArgumentNullException(nameof(encodedData))
+                : new ImageData(width, height, encodedData, encodedFormat);
         }
 
         /// <summary>
@@ -122,9 +120,9 @@ namespace DmitryBrant.ImageFormats
         /// <param name="fileName">Name of the file to load.</param>
         /// <returns>ImageData that contains the decoded image, or null if it could
         /// not be decoded by any of the formats known to this library.</returns>
-        public static ImageData Load(string fileName)
+        public static ImageData? Load(string fileName)
         {
-            ImageData bmp = null;
+            ImageData? bmp = null;
             using (var f = new FileStream(fileName, FileMode.Open, FileAccess.Read))
             {
                 bmp = Load(f);
@@ -132,25 +130,25 @@ namespace DmitryBrant.ImageFormats
 
             if (bmp == null)
             {
-                if (Path.GetExtension(fileName).ToLower().Contains("tga"))
+                if (Path.GetExtension(fileName).Contains("tga", StringComparison.OrdinalIgnoreCase))
                     bmp = TgaReader.Load(fileName);
             }
 
             if (bmp == null)
             {
-                if (Path.GetExtension(fileName).ToLower().Contains("cut"))
+                if (Path.GetExtension(fileName).Contains("cut", StringComparison.OrdinalIgnoreCase))
                     bmp = CutReader.Load(fileName);
             }
 
             if (bmp == null)
             {
-                if (Path.GetExtension(fileName).ToLower().Contains("sgi") || Path.GetExtension(fileName).ToLower().Contains("rgb") || Path.GetExtension(fileName).ToLower().Contains("bw"))
+                if (Path.GetExtension(fileName).Contains("sgi", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(fileName).Contains("rgb", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(fileName).Contains("bw", StringComparison.OrdinalIgnoreCase))
                     bmp = SgiReader.Load(fileName);
             }
 
             if (bmp == null)
             {
-                if (Path.GetExtension(fileName).ToLower().Contains("xpm"))
+                if (Path.GetExtension(fileName).Contains("xpm", StringComparison.OrdinalIgnoreCase))
                     bmp = XpmReader.Load(fileName);
             }
 
@@ -164,13 +162,13 @@ namespace DmitryBrant.ImageFormats
         /// <param name="stream">Stream from which the image will be read.</param>
         /// <returns>ImageData that contains the decoded image, or null if it could
         /// not be decoded by any of the formats known to this library.</returns>
-        public static ImageData Load(Stream stream)
+        public static ImageData? Load(Stream stream)
         {
-            ImageData bmp = null;
+            ImageData? bmp = null;
 
             //read the first few bytes of the file to determine what format it is...
-            byte[] header = new byte[256];
-            stream.ReadExactly(header);
+            byte[] header = new byte[Math.Min(256, stream.Length)];
+            stream.ReadExactly(header, 0, header.Length);
             stream.Seek(0, SeekOrigin.Begin);
 
             if ((header[0] == 0xA) && (header[1] <= 0x5) && (header[2] == 0x1) && ((header[3] == 0x1) || (header[3] == 0x2) || (header[3] == 0x4) || (header[3] == 0x8)))
@@ -185,11 +183,11 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = RasReader.Load(stream);
             }
-            else if ((header[0x80] == 'D') && (header[0x81] == 'I') && (header[0x82] == 'C') && (header[0x83] == 'M'))
+            else if ((header.Length > 0x83) && (header[0x80] == 'D') && (header[0x81] == 'I') && (header[0x82] == 'C') && (header[0x83] == 'M'))
             {
                 bmp = DicomReader.Load(stream);
             }
-            else if ((header[0x41] == 'P') && (header[0x42] == 'N') && (header[0x43] == 'T') && (header[0x44] == 'G'))
+            else if ((header.Length > 0x44) && (header[0x41] == 'P') && (header[0x42] == 'N') && (header[0x43] == 'T') && (header[0x44] == 'G'))
             {
                 bmp = MacPaintReader.Load(stream);
             }
@@ -213,7 +211,7 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = FitsReader.Load(stream);
             }
-            else if ((header[0x0] == 1) && (header[0x1] == 0xDA))
+            else if ((header[0] == 1) && (header[1] == 0xDA))
             {
                 bmp = SgiReader.Load(stream);
             }

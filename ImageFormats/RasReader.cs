@@ -45,16 +45,16 @@ namespace DmitryBrant.ImageFormats
         public static ImageData Load(Stream stream)
         {
             var reader = new BinaryReader(stream);
-            UInt32 tempDword = Util.BigEndian(reader.ReadUInt32());
+            uint tempDword = Util.BigEndian(reader.ReadUInt32());
             if (tempDword != 0x59a66a95)
                 throw new ImageDecodeException("This is not a valid RAS file.");
 
             int imgWidth = (int)Util.BigEndian(reader.ReadUInt32());
             int imgHeight = (int)Util.BigEndian(reader.ReadUInt32());
             int imgBpp = (int)Util.BigEndian(reader.ReadUInt32());
-            UInt32 dataLength = Util.BigEndian(reader.ReadUInt32());
-            UInt32 rasType = Util.BigEndian(reader.ReadUInt32());
-            UInt32 mapType = Util.BigEndian(reader.ReadUInt32());
+            uint dataLength = Util.BigEndian(reader.ReadUInt32());
+            uint rasType = Util.BigEndian(reader.ReadUInt32());
+            uint mapType = Util.BigEndian(reader.ReadUInt32());
             int mapLength = (int)Util.BigEndian(reader.ReadUInt32());
 
             var rleReader = new RleReader(stream, rasType == RAS_TYPE_RLE);
@@ -67,11 +67,11 @@ namespace DmitryBrant.ImageFormats
 
             byte[] bmpData = new byte[imgWidth * 4 * imgHeight];
 
-            byte[] colorPalette = null;
+            byte[] colorPalette = [];
             if (mapType > 0)
             {
                 colorPalette = new byte[mapLength];
-                stream.Read(colorPalette, 0, (int)mapLength);
+                stream.ReadExactly(colorPalette, 0, (int)mapLength);
             }
 
             try
@@ -261,18 +261,12 @@ namespace DmitryBrant.ImageFormats
         /// <summary>
         /// Helper class for reading a run-length encoded stream in a RAS file.
         /// </summary>
-        private class RleReader
+        private class RleReader(Stream stream, bool isRle)
         {
             private int currentByte = 0;
             private int runLength = 0, runIndex = 0;
-            private readonly Stream stream;
-            private readonly bool isRle;
-
-            public RleReader(Stream stream, bool isRle)
-            {
-                this.stream = stream;
-                this.isRle = isRle;
-            }
+            private readonly Stream stream = stream;
+            private readonly bool isRle = isRle;
 
             public int ReadByte()
             {
