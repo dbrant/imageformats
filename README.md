@@ -16,7 +16,7 @@ imageformats
 - .CUT (Dr. Halo)
 - .XPM (X Window PixMap)
 - .DEEP (TVPaint IFF DEEP images)
-- .FITS, .FIT, .FTS (astronomical images, including image cubes and multi-extension files)
+- .FITS, .FIT, .FTS, .FZ (astronomical images, including image cubes, multi-extension and tile-compressed files)
 - .DCM (DICOM medical images, including JPEG, JPEG-LS, JPEG 2000 and RLE compressed ones)
 - .JP2, .J2K, .J2C, .JPF (JPEG 2000)
 - .ART (AOL Johnson-Grace images)

@@ -24,7 +24,8 @@ Each 2-D plane of an image (and each image extension) is treated as a frame,
 except that a cube of exactly three planes is taken to be an RGB color image.
 Since the data is usually scientific rather than meant for display, it's
 stretched linearly between the 0.25th and 99.75th percentiles of its values
-(as most astronomy software does by default), unless it's plain 8-bit data. By
+(as most astronomy software does by default), unless it's an 8-bit RGB image.
+Tile-compressed images (.fz files) are also supported; see FitsTileCompression. By
 convention, the first row of a FITS image is at the bottom.
 
 Copyright 2019+ Dmitry Brant.
@@ -35,6 +36,53 @@ License: MIT
 
 namespace DmitryBrant.ImageFormats
 {
+    /// <summary>
+    /// A header and data unit of a FITS file.
+    /// </summary>
+    internal sealed class FitsHdu
+    {
+        public readonly Dictionary<string, string> Cards = new();
+        public long DataStart;
+        public long DataSize;
+
+        /// <summary>Element type and dimensions of the image (for a compressed image, of the
+        /// uncompressed image, rather than the table that contains it).</summary>
+        public int Bitpix;
+        public long[] Axes = Array.Empty<long>();
+        public bool IsImage;
+
+        /// <summary>Whether this is a tile-compressed image, stored in a binary table.</summary>
+        public bool IsCompressed;
+
+        public int Width => Axes.Length >= 2 ? (int)Axes[0] : 0;
+        public int Height => Axes.Length >= 2 ? (int)Axes[1] : 0;
+
+        /// <summary>Number of 2-D planes in the image.</summary>
+        public long Planes
+        {
+            get
+            {
+                long p = 1;
+                for (int i = 2; i < Axes.Length; i++)
+                    p *= Axes[i];
+                return p;
+            }
+        }
+
+        /// <summary>Whether the image looks like an RGB color image.</summary>
+        public bool IsRgb => Axes.Length >= 3 && Axes[2] == 3 && Planes == 3;
+
+        public double GetNumber(string key, double defaultValue)
+        {
+            return Cards.TryGetValue(key, out var v) && double.TryParse(v.Replace('D', 'E').Replace('d', 'e'), NumberStyles.Float, CultureInfo.InvariantCulture, out double d) ? d : defaultValue;
+        }
+
+        public string GetString(string key, string defaultValue)
+        {
+            return Cards.TryGetValue(key, out var v) ? v : defaultValue;
+        }
+    }
+
     /// <summary>
     /// Handles reading FITS (Flexible Image Transport System) images
     /// </summary>
@@ -47,45 +95,9 @@ namespace DmitryBrant.ImageFormats
         private const double ClipPercent = 0.25;
 
         /// <summary>
-        /// A header and data unit.
-        /// </summary>
-        private sealed class Hdu
-        {
-            public readonly Dictionary<string, string> Cards = new();
-            public long DataStart;
-            public long DataSize;
-            public int Bitpix;
-            public long[] Axes = Array.Empty<long>();
-            public bool IsImage;
-
-            public int Width => Axes.Length >= 2 ? (int)Axes[0] : 0;
-            public int Height => Axes.Length >= 2 ? (int)Axes[1] : 0;
-
-            /// <summary>Number of 2-D planes in the image.</summary>
-            public long Planes
-            {
-                get
-                {
-                    long p = 1;
-                    for (int i = 2; i < Axes.Length; i++)
-                        p *= Axes[i];
-                    return p;
-                }
-            }
-
-            /// <summary>Whether the image looks like an RGB color image.</summary>
-            public bool IsRgb => Axes.Length >= 3 && Axes[2] == 3 && Planes == 3;
-
-            public double GetNumber(string key, double defaultValue)
-            {
-                return Cards.TryGetValue(key, out var v) && double.TryParse(v.Replace('D', 'E').Replace('d', 'e'), NumberStyles.Float, CultureInfo.InvariantCulture, out double d) ? d : defaultValue;
-            }
-        }
-
-        /// <summary>
         /// A frame of the file: one 2-D plane of an image, or three planes for an RGB image.
         /// </summary>
-        private readonly record struct Frame(Hdu Hdu, long Plane, bool Rgb);
+        private readonly record struct Frame(FitsHdu Hdu, long Plane, bool Rgb);
 
         /// <summary>
         /// Reads a FITS (Flexible Image Transport System) image from a file. If the file
@@ -250,16 +262,16 @@ namespace DmitryBrant.ImageFormats
         /// the file. Stops at the end of the stream, or at the first thing that doesn't
         /// look like a valid header (the stream may contain more than just the FITS file).
         /// </summary>
-        private static List<Hdu> ReadHdus(Stream stream, long start, out long fileSize)
+        private static List<FitsHdu> ReadHdus(Stream stream, long start, out long fileSize)
         {
-            var hdus = new List<Hdu>();
+            var hdus = new List<FitsHdu>();
             fileSize = 0;
             var card = new byte[HEADER_ITEM_LENGTH];
             long pos = start;
             while (true)
             {
                 stream.Seek(pos, SeekOrigin.Begin);
-                var hdu = new Hdu();
+                var hdu = new FitsHdu();
                 bool ended = false;
                 long cardCount = 0;
                 while (true)
@@ -318,8 +330,23 @@ namespace DmitryBrant.ImageFormats
                     elements = gcount * (pcount + elements);
                 hdu.DataSize = elements * Math.Abs(hdu.Bitpix) / 8;
 
-                string xtension = hdus.Count == 0 ? "" : (hdu.Cards.TryGetValue("XTENSION", out var x) ? x : "");
+                string xtension = hdus.Count == 0 ? "" : hdu.GetString("XTENSION", "");
                 hdu.IsImage = !groups && (hdus.Count == 0 || xtension == "IMAGE" || xtension == "IUEIMAGE");
+                if (xtension == "BINTABLE" && hdu.GetString("ZIMAGE", "") == "T")
+                {
+                    // A tile-compressed image: the table describes the image it contains.
+                    int znaxis = (int)hdu.GetNumber("ZNAXIS", 0);
+                    int zbitpix = (int)hdu.GetNumber("ZBITPIX", 0);
+                    if (znaxis > 0 && znaxis <= 999 && zbitpix is 8 or 16 or 32 or 64 or -32 or -64)
+                    {
+                        hdu.Axes = new long[znaxis];
+                        for (int i = 0; i < znaxis; i++)
+                            hdu.Axes[i] = Math.Max(0, (long)hdu.GetNumber("ZNAXIS" + (i + 1), 0));
+                        hdu.Bitpix = zbitpix;
+                        hdu.IsImage = true;
+                        hdu.IsCompressed = true;
+                    }
+                }
 
                 hdus.Add(hdu);
                 long dataBlocks = (hdu.DataSize + HEADER_BLOCK_LENGTH - 1) / HEADER_BLOCK_LENGTH * HEADER_BLOCK_LENGTH;
@@ -362,7 +389,7 @@ namespace DmitryBrant.ImageFormats
             return (slash >= 0 ? text[..slash] : text).Trim();
         }
 
-        private static List<Frame> GetFrames(List<Hdu> hdus)
+        private static List<Frame> GetFrames(List<FitsHdu> hdus)
         {
             var frames = new List<Frame>();
             foreach (var hdu in hdus)
@@ -389,8 +416,11 @@ namespace DmitryBrant.ImageFormats
         /// <summary>
         /// Reads one plane of an image, as physical values (with undefined values as NaN).
         /// </summary>
-        private static float[] ReadPlane(Stream stream, Hdu hdu, long plane)
+        private static float[] ReadPlane(Stream stream, FitsHdu hdu, long plane)
         {
+            if (hdu.IsCompressed)
+                return FitsTileCompression.ReadPlane(stream, hdu, plane);
+
             int width = hdu.Width, height = hdu.Height;
             int bytesPerElement = Math.Abs(hdu.Bitpix) / 8;
             long planeBytes = (long)width * height * bytesPerElement;
@@ -442,11 +472,11 @@ namespace DmitryBrant.ImageFormats
             for (int c = 0; c < (frame.Rgb ? 3 : 1); c++)
                 planes.Add(ReadPlane(stream, hdu, frame.Plane + c));
 
-            // Plain 8-bit data is presumably meant to be displayed as it is; anything else
+            // An 8-bit RGB image is presumably meant to be displayed as it is; anything else
             // is stretched between percentiles (shared by all channels of a color image,
             // to keep its color balance).
             double lo, hi;
-            bool plain = hdu.Bitpix == 8 && hdu.GetNumber("BZERO", 0) == 0 && hdu.GetNumber("BSCALE", 1) == 1;
+            bool plain = frame.Rgb && hdu.Bitpix == 8 && hdu.GetNumber("BZERO", 0) == 0 && hdu.GetNumber("BSCALE", 1) == 1;
             if (plain)
             {
                 lo = 0;
