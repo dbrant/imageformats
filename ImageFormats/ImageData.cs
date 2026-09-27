@@ -229,6 +229,12 @@ namespace DmitryBrant.ImageFormats
                 // which are images.
                 bmp = AwdReader.LoadIfAwd(stream);
             }
+            else if (DicomReader.HasHeaderlessSignature(header))
+            {
+                // A DICOM file without the usual preamble, which starts directly with
+                // a data set (as older ACR-NEMA files do).
+                bmp = DicomReader.Load(stream);
+            }
             return bmp;
         }
     }

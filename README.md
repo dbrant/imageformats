@@ -17,7 +17,7 @@ imageformats
 - .XPM (X Window PixMap)
 - .DEEP (TVPaint IFF DEEP images)
 - .FITS (experimental support)
-- .DICOM (experimental support)
+- .DCM (DICOM medical images, including JPEG, JPEG-LS, JPEG 2000 and RLE compressed ones)
 - .ART (AOL Johnson-Grace images)
 - .PSP, .PSPIMAGE (Paint Shop Pro images)
 - .AWD (Microsoft Fax documents)
@@ -61,11 +61,12 @@ for (int y = 0; y < image.Height; y++)
 bitmap.UnlockBits(bits);
 ```
 
-A few source formats store their pixel data as an embedded image in some other
-well-known encoding, most notably DICOM files that wrap a JPEG. Rather than pull in a
-JPEG decoder, the library passes those bytes through untouched: `image.IsEncoded` is
-true, `image.Data` is null, and the encoded bytes are in `image.EncodedData` (with
-`image.EncodedFormat` naming the encoding) for you to decode yourself.
+Occasionally a source format stores its pixel data as an embedded image in some other
+well-known encoding that the library can't decode itself (for example, a DICOM file
+that wraps an 8-bit JPEG using arithmetic coding). Those bytes are passed through
+untouched: `image.IsEncoded` is true, `image.Data` is null, and the encoded bytes are
+in `image.EncodedData` (with `image.EncodedFormat` naming the encoding) for you to
+decode yourself.
 
 The `ImageViewer` project in this repository is a small Avalonia app that does all of
 the above; see its `Interop.cs` for a complete example.
