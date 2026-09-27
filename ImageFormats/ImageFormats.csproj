@@ -21,7 +21,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>    
     <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel;awd;fax;ccitt</PackageTags>    
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>   
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>    
+    <Nullable>enable</Nullable>   
   </PropertyGroup>
 
   <ItemGroup>
