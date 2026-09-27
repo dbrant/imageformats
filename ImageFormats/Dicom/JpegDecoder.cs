@@ -302,7 +302,7 @@ namespace DmitryBrant.ImageFormats
             height = ReadUInt16(pos + 3);
             width = ReadUInt16(pos + 5);
             int count = data[pos + 7];
-            if (width == 0 || height == 0 || count == 0 || len < 8 + count * 3 || (long)width * height * count > DicomReader.MaxSamples)
+            if (width == 0 || height == 0 || count == 0 || len < 8 + count * 3 || (long)width * height * count > CodecImage.MaxSamples)
                 throw new ImageDecodeException("Invalid JPEG frame header.");
             if (precision < 2 || precision > 16)
                 throw new ImageDecodeException("Unsupported JPEG sample precision: " + precision);

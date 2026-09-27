@@ -149,7 +149,7 @@ namespace DmitryBrant.ImageFormats
                         {
                             if (numComponents == 0)
                                 throw new ImageDecodeException("JPEG-LS scan found before frame header.");
-                            if (width <= 0 || height <= 0 || (long)width * height * numComponents > DicomReader.MaxSamples)
+                            if (width <= 0 || height <= 0 || (long)width * height * numComponents > CodecImage.MaxSamples)
                                 throw new ImageDecodeException("Invalid JPEG-LS image dimensions.");
                             planes ??= new int[numComponents][];
 

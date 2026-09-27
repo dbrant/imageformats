@@ -1,7 +1,9 @@
+using System;
+
 /*
 
-The common result type of the compressed-image decoders used by the DICOM reader
-(JPEG, JPEG-LS, JPEG 2000, RLE). Samples are stored as plain integers, one per
+The common result type of the compressed-image decoders used by the DICOM and
+JPEG 2000 readers (JPEG, JPEG-LS, JPEG 2000, RLE). Samples are stored as plain integers, one per
 component per pixel, interleaved (all components of the first pixel, then all
 components of the second, and so on), top-down. Interpreting them (windowing,
 color conversion and the like) is left to the caller, which knows what the
@@ -17,13 +19,20 @@ namespace DmitryBrant.ImageFormats
 {
     internal sealed class CodecImage
     {
+        /// <summary>
+        /// Sanity limit on the number of samples in an image, to avoid huge allocations
+        /// due to corrupt headers.
+        /// </summary>
+        public const long MaxSamples = 1L << 28;
+
         public int Width { get; }
         public int Height { get; }
 
         /// <summary>Number of components (samples) per pixel.</summary>
         public int Components { get; }
 
-        /// <summary>Number of significant bits in each sample.</summary>
+        /// <summary>Number of significant bits in each sample (of the first component,
+        /// if they differ; see ComponentPrecisions).</summary>
         public int Precision { get; }
 
         /// <summary>
@@ -39,6 +48,12 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         public bool ColorConverted { get; set; }
 
+        /// <summary>Number of significant bits of each component.</summary>
+        public int[] ComponentPrecisions { get; set; }
+
+        /// <summary>Whether the samples of each component are signed.</summary>
+        public bool[] ComponentSigned { get; set; }
+
         /// <summary>Width * Height * Components samples, interleaved by pixel.</summary>
         public int[] Samples { get; }
 
@@ -50,6 +65,10 @@ namespace DmitryBrant.ImageFormats
             Precision = precision;
             Signed = signed;
             Samples = samples;
+            ComponentPrecisions = new int[components];
+            ComponentSigned = new bool[components];
+            Array.Fill(ComponentPrecisions, precision);
+            Array.Fill(ComponentSigned, signed);
         }
     }
 }

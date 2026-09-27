@@ -229,6 +229,10 @@ namespace DmitryBrant.ImageFormats
                 // which are images.
                 bmp = AwdReader.LoadIfAwd(stream);
             }
+            else if (Jpeg2000Reader.HasJp2Signature(header) || Jpeg2000Reader.HasCodestreamSignature(header))
+            {
+                bmp = Jpeg2000Reader.Load(stream);
+            }
             else if (DicomReader.HasHeaderlessSignature(header))
             {
                 // A DICOM file without the usual preamble, which starts directly with

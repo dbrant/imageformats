@@ -18,6 +18,7 @@ imageformats
 - .DEEP (TVPaint IFF DEEP images)
 - .FITS (experimental support)
 - .DCM (DICOM medical images, including JPEG, JPEG-LS, JPEG 2000 and RLE compressed ones)
+- .JP2, .J2K, .J2C, .JPF (JPEG 2000)
 - .ART (AOL Johnson-Grace images)
 - .PSP, .PSPIMAGE (Paint Shop Pro images)
 - .AWD (Microsoft Fax documents)

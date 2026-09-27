@@ -16,11 +16,11 @@
     <PackageProjectUrl>https://dmitrybrant.com</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/dbrant/imageformats</RepositoryUrl>
-    <Description>Library for decoding old and obscure image formats. Decoders return raw pixel data, to be handed to your favorite imaging library.</Description>
+    <Description>Library for decoding old and obscure image formats, as well as DICOM and JPEG 2000. Decoders return raw pixel data, to be handed to your favorite imaging library.</Description>
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>    
-    <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel;awd;fax;ccitt</PackageTags>    
+    <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;jpeg2000;jp2;j2k;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel;awd;fax;ccitt</PackageTags>    
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>    
     <Nullable>enable</Nullable>   
   </PropertyGroup>

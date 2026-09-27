@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 /*
 
-Decoder for JPEG 2000 (ISO/IEC 15444-1, ITU-T T.800) images, as used by the
-DICOM transfer syntaxes 1.2.840.10008.1.2.4.90 and .91. Accepts either a raw
-codestream (starting with an SOC marker) or a JP2 file, from which the codestream
-box is extracted.
+Decoder for JPEG 2000 (ISO/IEC 15444-1, ITU-T T.800) codestreams, as used both by
+JPEG 2000 image files (see Jpeg2000Reader) and by the DICOM transfer syntaxes
+1.2.840.10008.1.2.4.90 and .91. Accepts either a raw codestream (starting with an
+SOC marker) or a JP2 file, from which the codestream box is extracted. Only the
+codestream is interpreted here; the metadata in a JP2 file (color space, palette,
+channel definitions) is up to the caller.
 
 A JPEG 2000 image is split into tiles, and each tile component is transformed
 with a discrete wavelet transform (the reversible 5/3 integer filter for lossless
@@ -47,6 +51,14 @@ namespace DmitryBrant.ImageFormats
             {
                 FindCodestreamBox(data, out start, out end);
             }
+            return Decode(data, start, end);
+        }
+
+        /// <summary>
+        /// Decode the JPEG 2000 codestream in the given range of a buffer.
+        /// </summary>
+        public static CodecImage Decode(byte[] data, int start, int end)
+        {
             try
             {
                 return new Codestream(data, start, end).Decode();
@@ -474,7 +486,9 @@ namespace DmitryBrant.ImageFormats
 
                 return new CodecImage(w, h, numComps, comps[0].Precision, comps[0].Signed, samples)
                 {
-                    ColorConverted = colorConverted
+                    ColorConverted = colorConverted,
+                    ComponentPrecisions = Array.ConvertAll(comps, c => c.Precision),
+                    ComponentSigned = Array.ConvertAll(comps, c => c.Signed)
                 };
             }
 
@@ -650,7 +664,7 @@ namespace DmitryBrant.ImageFormats
                             if (xsiz <= xosiz || ysiz <= yosiz || xtsiz <= 0 || ytsiz <= 0 || numComps == 0
                                 || xtosiz > xosiz || ytosiz > yosiz || xtosiz + xtsiz <= xosiz || ytosiz + ytsiz <= yosiz)
                                 throw new ImageDecodeException("Invalid JPEG 2000 image dimensions.");
-                            if ((long)(xsiz - xosiz) * (ysiz - yosiz) * numComps > DicomReader.MaxSamples)
+                            if ((long)(xsiz - xosiz) * (ysiz - yosiz) * numComps > CodecImage.MaxSamples)
                                 throw new ImageDecodeException("JPEG 2000 image is too large.");
                             comps = new Component[numComps];
                             for (int c = 0; c < numComps; c++)
@@ -934,12 +948,18 @@ namespace DmitryBrant.ImageFormats
                     // Truncated tile; reconstruct whatever we got.
                 }
 
-                var t1 = new Tier1();
+                // Code-blocks are independent of each other, and each one writes to its own
+                // part of its tile component, so they can be decoded in parallel.
+                var blocks = new List<(TileComp, SubBand, CodeBlock)>();
                 foreach (var tc in tcomps)
+                    CollectCodeBlocks(tc, blocks);
+                Parallel.For(0, blocks.Count, () => new Tier1(), (i, _, t1) =>
                 {
-                    DecodeCodeBlocks(tc, t1);
-                    InverseTransform(tc);
-                }
+                    var (tc, band, cb) = blocks[i];
+                    DecodeCodeBlock(tc, band, cb, t1);
+                    return t1;
+                }, _ => { });
+                Parallel.ForEach(tcomps, InverseTransform);
 
                 // Inverse multi-component transform.
                 bool mct = g.Mct == 1 && numComps >= 3
@@ -1410,12 +1430,10 @@ namespace DmitryBrant.ImageFormats
 
             // Code-block decoding and dequantization
 
-            private static void DecodeCodeBlocks(TileComp tc, Tier1 t1)
+            private static void CollectCodeBlocks(TileComp tc, List<(TileComp, SubBand, CodeBlock)> blocks)
             {
-                int w = tc.X1 - tc.X0;
-                if (w <= 0 || tc.Y1 <= tc.Y0)
+                if (tc.X1 <= tc.X0 || tc.Y1 <= tc.Y0)
                     return;
-                bool quantized = tc.Quant.Style != 0;
                 foreach (var res in tc.Res)
                 {
                     foreach (var band in res.Bands)
@@ -1424,55 +1442,63 @@ namespace DmitryBrant.ImageFormats
                         {
                             foreach (var cb in pb.Blocks)
                             {
-                                if (cb.Segments.Count == 0)
-                                    continue;
-                                int mbEff = band.Mb + tc.Roi;
-                                int planes = mbEff - cb.ZeroBitPlanes;
-                                if (planes <= 0 || planes > 31)
-                                    continue;
-                                int bw = cb.X1 - cb.X0, bh = cb.Y1 - cb.Y0;
-                                t1.Decode(cb, bw, bh, band.Type, tc.Style.BlockStyle, planes);
-
-                                int ox = cb.X0 - band.X0 + band.OffX, oy = cb.Y0 - band.Y0 + band.OffY;
-                                var mag = t1.Mag;
-                                var nbits = t1.NBits;
-                                var flags = t1.Flags;
-                                int fs = bw + 2;
-                                for (int y = 0; y < bh; y++)
-                                {
-                                    int dst = (oy + y) * w + ox;
-                                    for (int x = 0; x < bw; x++)
-                                    {
-                                        int m = mag[y * bw + x];
-                                        if (m == 0)
-                                            continue;
-                                        bool neg = (flags[(y + 1) * fs + x + 1] & Tier1.Neg) != 0;
-                                        // Bit planes that weren't decoded (because the code-block
-                                        // was truncated, or the transform is lossy) are
-                                        // reconstructed at the middle of the remaining interval.
-                                        int shift = planes - nbits[y * bw + x];
-                                        if (tc.Reversible && !quantized && tc.Roi == 0)
-                                        {
-                                            int v = shift > 0 ? (m << shift) | (1 << (shift - 1)) : m >> -shift;
-                                            tc.IData![dst + x] = neg ? -v : v;
-                                        }
-                                        else
-                                        {
-                                            double half = tc.Reversible && (shift <= 0 || tc.Roi > 0) ? 0.0 : 0.5;
-                                            double v = (m + half) * Math.Pow(2.0, shift);
-                                            if (tc.Roi > 0 && v >= Math.Pow(2.0, tc.Roi))
-                                                v /= Math.Pow(2.0, tc.Roi);
-                                            v *= band.Delta;
-                                            if (neg)
-                                                v = -v;
-                                            if (tc.Reversible)
-                                                tc.IData![dst + x] = (int)Math.Round(v);
-                                            else
-                                                tc.FData![dst + x] = (float)v;
-                                        }
-                                    }
-                                }
+                                if (cb.Segments.Count > 0)
+                                    blocks.Add((tc, band, cb));
                             }
+                        }
+                    }
+                }
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+            private static void DecodeCodeBlock(TileComp tc, SubBand band, CodeBlock cb, Tier1 t1)
+            {
+                int w = tc.X1 - tc.X0;
+                bool quantized = tc.Quant.Style != 0;
+                int mbEff = band.Mb + tc.Roi;
+                int planes = mbEff - cb.ZeroBitPlanes;
+                if (planes <= 0 || planes > 31)
+                    return;
+                int bw = cb.X1 - cb.X0, bh = cb.Y1 - cb.Y0;
+                t1.Decode(cb, bw, bh, band.Type, tc.Style.BlockStyle, planes);
+
+                int ox = cb.X0 - band.X0 + band.OffX, oy = cb.Y0 - band.Y0 + band.OffY;
+                var mag = t1.Mag;
+                var nbits = t1.NBits;
+                var flags = t1.Flags;
+                int fs = bw + 2;
+                bool integer = tc.Reversible && !quantized && tc.Roi == 0;
+                for (int y = 0; y < bh; y++)
+                {
+                    int dst = (oy + y) * w + ox;
+                    for (int x = 0; x < bw; x++)
+                    {
+                        int m = mag[y * bw + x];
+                        if (m == 0)
+                            continue;
+                        bool neg = (flags[(y + 1) * fs + x + 1] & Tier1.Neg) != 0;
+                        // Bit planes that weren't decoded (because the code-block was
+                        // truncated, or the transform is lossy) are reconstructed at the
+                        // middle of the remaining interval.
+                        int shift = planes - nbits[y * bw + x];
+                        if (integer)
+                        {
+                            int v = shift > 0 ? (m << shift) | (1 << (shift - 1)) : m >> -shift;
+                            tc.IData![dst + x] = neg ? -v : v;
+                        }
+                        else
+                        {
+                            double half = tc.Reversible && (shift <= 0 || tc.Roi > 0) ? 0.0 : 0.5;
+                            double v = Math.ScaleB(m + half, shift);
+                            if (tc.Roi > 0 && v >= Math.ScaleB(1.0, tc.Roi))
+                                v = Math.ScaleB(v, -tc.Roi);
+                            v *= band.Delta;
+                            if (neg)
+                                v = -v;
+                            if (tc.Reversible)
+                                tc.IData![dst + x] = (int)Math.Round(v);
+                            else
+                                tc.FData![dst + x] = (float)v;
                         }
                     }
                 }
@@ -1487,9 +1513,7 @@ namespace DmitryBrant.ImageFormats
                 int w = tc.X1 - tc.X0, h = tc.Y1 - tc.Y0;
                 if (w <= 0 || h <= 0)
                     return;
-                int maxDim = Math.Max(w, h);
-                int[]? ibuf = tc.IData != null ? new int[maxDim + 2 * Pad] : null;
-                float[]? fbuf = tc.FData != null ? new float[maxDim + 2 * Pad] : null;
+                int bufLen = Math.Max(w, h) + 2 * Pad;
 
                 for (int r = 1; r < tc.NumRes; r++)
                 {
@@ -1501,47 +1525,81 @@ namespace DmitryBrant.ImageFormats
                         continue;
                     int px = res.X0 & 1, py = res.Y0 & 1;
 
-                    if (ibuf != null)
+                    // Each row (and then each column) is transformed independently, so large
+                    // resolution levels are split across threads.
+                    if (tc.IData != null)
                     {
-                        var data = tc.IData!;
-                        for (int y = 0; y < rh; y++)
+                        var data = tc.IData;
+                        ForChunks(rh, rw, () => new int[bufLen], (y0, y1, buf) =>
                         {
-                            int row = y * w;
-                            for (int j = 0; j < rw; j++)
-                                ibuf[Pad + j] = ((px + j) & 1) == 0 ? data[row + (j >> 1)] : data[row + snx + (j >> 1)];
-                            Lift53(ibuf, rw, px);
-                            Buffer.BlockCopy(ibuf, Pad * 4, data, row * 4, rw * 4);
-                        }
-                        for (int x = 0; x < rw; x++)
+                            for (int y = y0; y < y1; y++)
+                            {
+                                int row = y * w;
+                                for (int j = 0; j < rw; j++)
+                                    buf[Pad + j] = ((px + j) & 1) == 0 ? data[row + (j >> 1)] : data[row + snx + (j >> 1)];
+                                Lift53(buf, rw, px);
+                                Buffer.BlockCopy(buf, Pad * 4, data, row * 4, rw * 4);
+                            }
+                        });
+                        ForChunks(rw, rh, () => new int[bufLen], (x0, x1, buf) =>
                         {
-                            for (int j = 0; j < rh; j++)
-                                ibuf[Pad + j] = ((py + j) & 1) == 0 ? data[(j >> 1) * w + x] : data[(sny + (j >> 1)) * w + x];
-                            Lift53(ibuf, rh, py);
-                            for (int j = 0; j < rh; j++)
-                                data[j * w + x] = ibuf[Pad + j];
-                        }
+                            for (int x = x0; x < x1; x++)
+                            {
+                                for (int j = 0; j < rh; j++)
+                                    buf[Pad + j] = ((py + j) & 1) == 0 ? data[(j >> 1) * w + x] : data[(sny + (j >> 1)) * w + x];
+                                Lift53(buf, rh, py);
+                                for (int j = 0; j < rh; j++)
+                                    data[j * w + x] = buf[Pad + j];
+                            }
+                        });
                     }
                     else
                     {
                         var data = tc.FData!;
-                        for (int y = 0; y < rh; y++)
+                        ForChunks(rh, rw, () => new float[bufLen], (y0, y1, buf) =>
                         {
-                            int row = y * w;
-                            for (int j = 0; j < rw; j++)
-                                fbuf![Pad + j] = ((px + j) & 1) == 0 ? data[row + (j >> 1)] : data[row + snx + (j >> 1)];
-                            Lift97(fbuf!, rw, px);
-                            Buffer.BlockCopy(fbuf!, Pad * 4, data, row * 4, rw * 4);
-                        }
-                        for (int x = 0; x < rw; x++)
+                            for (int y = y0; y < y1; y++)
+                            {
+                                int row = y * w;
+                                for (int j = 0; j < rw; j++)
+                                    buf[Pad + j] = ((px + j) & 1) == 0 ? data[row + (j >> 1)] : data[row + snx + (j >> 1)];
+                                Lift97(buf, rw, px);
+                                Buffer.BlockCopy(buf, Pad * 4, data, row * 4, rw * 4);
+                            }
+                        });
+                        ForChunks(rw, rh, () => new float[bufLen], (x0, x1, buf) =>
                         {
-                            for (int j = 0; j < rh; j++)
-                                fbuf![Pad + j] = ((py + j) & 1) == 0 ? data[(j >> 1) * w + x] : data[(sny + (j >> 1)) * w + x];
-                            Lift97(fbuf!, rh, py);
-                            for (int j = 0; j < rh; j++)
-                                data[j * w + x] = fbuf![Pad + j];
-                        }
+                            for (int x = x0; x < x1; x++)
+                            {
+                                for (int j = 0; j < rh; j++)
+                                    buf[Pad + j] = ((py + j) & 1) == 0 ? data[(j >> 1) * w + x] : data[(sny + (j >> 1)) * w + x];
+                                Lift97(buf, rh, py);
+                                for (int j = 0; j < rh; j++)
+                                    data[j * w + x] = buf[Pad + j];
+                            }
+                        });
                     }
                 }
+            }
+
+            /// <summary>
+            /// Runs body over [0, count) in chunks, in parallel if there's enough work
+            /// (count lines of length lineLength) to make it worthwhile, with a scratch
+            /// buffer per thread.
+            /// </summary>
+            private static void ForChunks<T>(int count, int lineLength, Func<T> makeBuffer, Action<int, int, T> body)
+            {
+                const int chunk = 32;
+                if ((long)count * lineLength < 256 * 256)
+                {
+                    body(0, count, makeBuffer());
+                    return;
+                }
+                Parallel.For(0, (count + chunk - 1) / chunk, makeBuffer, (i, _, buf) =>
+                {
+                    body(i * chunk, Math.Min((i + 1) * chunk, count), buf);
+                    return buf;
+                }, _ => { });
             }
 
             // Symmetric extension of a signal of length n, for index i outside [0, n).
@@ -1559,6 +1617,7 @@ namespace DmitryBrant.ImageFormats
             /// x[Pad..Pad+n). p0 is the parity of the first sample's absolute coordinate:
             /// samples at even coordinates are low-pass, odd ones are high-pass.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             private static void Lift53(int[] x, int n, int p0)
             {
                 if (n == 1)
@@ -1586,6 +1645,7 @@ namespace DmitryBrant.ImageFormats
             /// Inverse irreversible 9/7 lifting, in place, on the interleaved signal at
             /// x[Pad..Pad+n), with the same conventions as Lift53.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             private static void Lift97(float[] x, int n, int p0)
             {
                 if (n == 1)
@@ -1648,7 +1708,8 @@ namespace DmitryBrant.ImageFormats
 
             // MQ decoder state.
             private byte[] data = Array.Empty<byte>();
-            private int bp, dataEnd, a, chigh, clow, ct;
+            private int bp, dataEnd, a, ct;
+            private uint c;   // the code register: bits 16-31 are what the spec calls Chigh
             private readonly int[] cx = new int[19];
             private int rawC, rawCt;
 
@@ -1721,6 +1782,7 @@ namespace DmitryBrant.ImageFormats
                 cx[CtxUniform] = 46 << 1;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             public void Decode(CodeBlock cb, int bw, int bh, int bandType, int style, int planes)
             {
                 w = bw;
@@ -1775,6 +1837,7 @@ namespace DmitryBrant.ImageFormats
                 }
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             private void SetSignificant(int idx, bool neg)
             {
                 var f = Flags;
@@ -1789,29 +1852,46 @@ namespace DmitryBrant.ImageFormats
                 f[idx + fs + 1] |= SigNW;
             }
 
-            private int DecodeSign(int f)
+            // Sign coding context and XOR bit (T.800 Table D.3), indexed by the significance
+            // (low 4 bits) and sign (high 4 bits) of the four direct neighbors N, S, W, E.
+            private static readonly byte[] SignContexts = BuildSignContexts();
+
+            private static byte[] BuildSignContexts()
             {
-                int hc = 0, vc = 0;
-                if ((f & SigW) != 0) hc += (f & NegW) != 0 ? -1 : 1;
-                if ((f & SigE) != 0) hc += (f & NegE) != 0 ? -1 : 1;
-                if ((f & SigN) != 0) vc += (f & NegN) != 0 ? -1 : 1;
-                if ((f & SigS) != 0) vc += (f & NegS) != 0 ? -1 : 1;
-                hc = Math.Clamp(hc, -1, 1);
-                vc = Math.Clamp(vc, -1, 1);
-                int ctx, xorBit;
-                if (hc == 0)
+                var t = new byte[256];
+                for (int i = 0; i < 256; i++)
                 {
-                    ctx = vc == 0 ? 9 : 10;
-                    xorBit = vc < 0 ? 1 : 0;
+                    int hc = 0, vc = 0;
+                    if ((i & 4) != 0) hc += (i & 0x40) != 0 ? -1 : 1;
+                    if ((i & 8) != 0) hc += (i & 0x80) != 0 ? -1 : 1;
+                    if ((i & 1) != 0) vc += (i & 0x10) != 0 ? -1 : 1;
+                    if ((i & 2) != 0) vc += (i & 0x20) != 0 ? -1 : 1;
+                    hc = Math.Clamp(hc, -1, 1);
+                    vc = Math.Clamp(vc, -1, 1);
+                    int ctx, xorBit;
+                    if (hc == 0)
+                    {
+                        ctx = vc == 0 ? 9 : 10;
+                        xorBit = vc < 0 ? 1 : 0;
+                    }
+                    else
+                    {
+                        ctx = 12 + hc * vc;
+                        xorBit = hc < 0 ? 1 : 0;
+                    }
+                    t[i] = (byte)((ctx << 1) | xorBit);
                 }
-                else
-                {
-                    ctx = 12 + hc * vc;
-                    xorBit = hc < 0 ? 1 : 0;
-                }
-                return MqDecode(ctx) ^ xorBit;
+                return t;
             }
 
+            private int DecodeSign(int f)
+            {
+                // SigN..SigE are bits 0-3 and NegN..NegE bits 8-11 of the flags.
+                int entry = SignContexts[(f & 0xF) | ((f >> 4) & 0xF0)];
+                return MqDecode(entry >> 1) ^ (entry & 1);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             private void SignificancePass(byte[] zc, bool raw, bool causal)
             {
                 for (int y0 = 0; y0 < h; y0 += 4)
@@ -1844,6 +1924,7 @@ namespace DmitryBrant.ImageFormats
                 }
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             private void RefinementPass(bool raw, bool causal)
             {
                 for (int y0 = 0; y0 < h; y0 += 4)
@@ -1877,6 +1958,7 @@ namespace DmitryBrant.ImageFormats
                 }
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             private void CleanupPass(byte[] zc, bool causal)
             {
                 for (int y0 = 0; y0 < h; y0 += 4)
@@ -1947,11 +2029,9 @@ namespace DmitryBrant.ImageFormats
                 data = buf;
                 dataEnd = len;
                 bp = 0;
-                chigh = data[0];
-                clow = 0;
+                c = (uint)data[0] << 16;
                 ByteIn();
-                chigh = ((chigh << 7) & 0xFFFF) | ((clow >> 9) & 0x7F);
-                clow = (clow << 7) & 0xFFFF;
+                c <<= 7;
                 ct -= 7;
                 a = 0x8000;
             }
@@ -1962,29 +2042,25 @@ namespace DmitryBrant.ImageFormats
                 {
                     if (data[bp + 1] > 0x8F)
                     {
-                        clow += 0xFF00;
+                        c += 0xFF00;
                         ct = 8;
                     }
                     else
                     {
                         bp++;
-                        clow += data[bp] << 9;
+                        c += (uint)data[bp] << 9;
                         ct = 7;
                     }
                 }
                 else
                 {
                     bp++;
-                    clow += bp < dataEnd ? data[bp] << 8 : 0xFF00;
+                    c += bp < dataEnd ? (uint)data[bp] << 8 : 0xFF00;
                     ct = 8;
-                }
-                if (clow > 0xFFFF)
-                {
-                    chigh += clow >> 16;
-                    clow &= 0xFFFF;
                 }
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
             private int MqDecode(int ctxIndex)
             {
                 int state = cx[ctxIndex];
@@ -1992,26 +2068,25 @@ namespace DmitryBrant.ImageFormats
                 int qe = Qe[idx];
                 int d;
                 int av = a - qe;
-                if (chigh < qe)
+                if ((c >> 16) < qe)
                 {
                     if (av < qe)
                     {
-                        av = qe;
                         d = mps;
                         idx = Nmps[idx];
                     }
                     else
                     {
-                        av = qe;
                         d = 1 ^ mps;
                         if (Switch[idx] == 1)
                             mps = d;
                         idx = Nlps[idx];
                     }
+                    av = qe;
                 }
                 else
                 {
-                    chigh -= qe;
+                    c -= (uint)qe << 16;
                     if ((av & 0x8000) != 0)
                     {
                         a = av;
@@ -2035,8 +2110,7 @@ namespace DmitryBrant.ImageFormats
                     if (ct == 0)
                         ByteIn();
                     av <<= 1;
-                    chigh = ((chigh << 1) & 0xFFFF) | ((clow >> 15) & 1);
-                    clow = (clow << 1) & 0xFFFF;
+                    c <<= 1;
                     ct--;
                 } while ((av & 0x8000) == 0);
                 a = av;

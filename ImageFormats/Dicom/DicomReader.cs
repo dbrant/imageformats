@@ -43,10 +43,6 @@ namespace DmitryBrant.ImageFormats
         private const string TsDeflated = "1.2.840.10008.1.2.1.99";
         private const string TsRle = "1.2.840.10008.1.2.5";
 
-        // Sanity limit on the number of samples in a frame, to avoid huge allocations
-        // due to corrupt headers.
-        internal const long MaxSamples = 1L << 28;
-
         // Frequently used tags
         private const uint TagTransferSyntax = 0x00020010;
         private const uint TagSamplesPerPixel = 0x00280002;
@@ -319,7 +315,7 @@ namespace DmitryBrant.ImageFormats
                 var pixelData = ds.Get(DicomDataSet.TagPixelData);
                 if (pixelData == null || (pixelData.Fragments == null && pixelData.Length == 0))
                     throw new ImageDecodeException("DICOM file does not appear to have any image data.");
-                if (rows <= 0 || columns <= 0 || (long)rows * columns * samplesPerPixel > MaxSamples)
+                if (rows <= 0 || columns <= 0 || (long)rows * columns * samplesPerPixel > CodecImage.MaxSamples)
                     throw new ImageDecodeException("DICOM file has invalid image dimensions.");
 
                 CodecImage image;
@@ -904,7 +900,7 @@ namespace DmitryBrant.ImageFormats
                 var element = ds.Get(DicomDataSet.TagFloatPixelData) ?? ds.Get(DicomDataSet.TagDoublePixelData)!;
                 bool isDouble = element.Tag == DicomDataSet.TagDoublePixelData;
                 int size = isDouble ? 8 : 4;
-                if (rows <= 0 || columns <= 0 || (long)rows * columns > MaxSamples)
+                if (rows <= 0 || columns <= 0 || (long)rows * columns > CodecImage.MaxSamples)
                     throw new ImageDecodeException("DICOM file has invalid image dimensions.");
                 int numPixels = rows * columns;
                 var values = new double[numPixels];
