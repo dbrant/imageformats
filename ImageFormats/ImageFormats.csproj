@@ -9,14 +9,14 @@
 
   <PropertyGroup>
     <PackageId>DmitryBrant.ImageFormats</PackageId>
-    <Version>1.5.3</Version>
+    <Version>1.5.4</Version>
     <Title>ImageFormats</Title>
     <Authors>Dmitry Brant</Authors>
     <Copyright>Copyright © Dmitry Brant, 2021+</Copyright>
     <PackageProjectUrl>https://dmitrybrant.com</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/dbrant/imageformats</RepositoryUrl>
-    <Description>Library for decoding old and obscure image formats, as well as DICOM and JPEG 2000. Decoders return raw pixel data, to be handed to your favorite imaging library.</Description>
+    <Description>Library for decoding legacy, obscure, and nonstandard image formats. Decoders return raw pixel data, to be handed to your favorite imaging library.</Description>
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>    
