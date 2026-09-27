@@ -351,11 +351,45 @@ namespace DmitryBrant.ImageFormats
                 hdus.Add(hdu);
                 long dataBlocks = (hdu.DataSize + HEADER_BLOCK_LENGTH - 1) / HEADER_BLOCK_LENGTH * HEADER_BLOCK_LENGTH;
                 pos = hdu.DataStart + dataBlocks;
-                fileSize = pos - start;
+                fileSize = FindEnd(stream, hdu.DataStart + hdu.DataSize, pos, hdu.GetString("XTENSION", "") == "TABLE") - start;
                 if (!stream.CanSeek || pos >= stream.Length)
                     break;
             }
             return hdus;
+        }
+
+        /// <summary>
+        /// Works out where the file ends, if the HDU whose data ends at dataEnd is the last
+        /// one. Its data should be padded to a whole block (ending at paddedEnd), but the
+        /// file may end early: if it's truncated, or if the writer skipped the padding (in
+        /// which case whatever follows in the stream isn't padding).
+        /// </summary>
+        private static long FindEnd(Stream stream, long dataEnd, long paddedEnd, bool asciiTable)
+        {
+            if (!stream.CanSeek)
+                return paddedEnd;
+            long available = stream.Length;
+            if (available <= dataEnd)
+                return available;
+            // Padding is zeros after binary data, or spaces after an ASCII table.
+            long end = Math.Min(paddedEnd, available);
+            var padding = new byte[end - dataEnd];
+            stream.Seek(dataEnd, SeekOrigin.Begin);
+            int total = 0;
+            while (total < padding.Length)
+            {
+                int n = stream.Read(padding, total, padding.Length - total);
+                if (n <= 0)
+                    break;
+                total += n;
+            }
+            byte pad = asciiTable ? (byte)' ' : (byte)0;
+            for (int i = 0; i < total; i++)
+            {
+                if (padding[i] != pad)
+                    return dataEnd;
+            }
+            return dataEnd + total;
         }
 
         /// <summary>
@@ -521,9 +555,18 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         private static void GetStretch(List<float[]> planes, out double lo, out double hi)
         {
+            // The exact extremes, in case we need them (sampling could miss them).
             long total = 0;
+            double min = double.MaxValue, max = double.MinValue;
             foreach (var p in planes)
+            {
                 total += p.Length;
+                foreach (var v in p)
+                {
+                    if (v < min) min = v;
+                    if (v > max) max = v;
+                }
+            }
             long step = Math.Max(1, (total + MaxStretchSamples - 1) / MaxStretchSamples);
             var samples = new List<float>((int)Math.Min(total, MaxStretchSamples));
             long index = 0;
@@ -548,8 +591,8 @@ namespace DmitryBrant.ImageFormats
             if (hi <= lo)
             {
                 // Mostly constant; fall back to the full range.
-                lo = sorted[0];
-                hi = sorted[^1];
+                lo = min;
+                hi = max;
             }
         }
 

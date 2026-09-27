@@ -45,12 +45,15 @@ namespace DmitryBrant.ImageFormats
         /// <param name="tileWidth">Size of the tile along the first (fastest varying) axis.</param>
         /// <param name="tileHeight">Size of the tile along the second axis.</param>
         /// <param name="smooth">Whether to smooth the image during the inverse transform.</param>
+        /// <param name="wide">Whether to use 64-bit arithmetic (for 64-bit images). Otherwise the
+        /// arithmetic is done in 32 bits, overflowing just as it does in CFITSIO, so that the
+        /// (lossy) results are exactly the same.</param>
         /// <returns>The tile's pixel values, tileWidth * tileHeight of them, row by row.</returns>
-        public static long[] Decode(byte[] data, int tileWidth, int tileHeight, bool smooth)
+        public static long[] Decode(byte[] data, int tileWidth, int tileHeight, bool smooth, bool wide)
         {
             try
             {
-                return DecodeTile(data, tileWidth, tileHeight, smooth);
+                return DecodeTile(data, tileWidth, tileHeight, smooth, wide);
             }
             catch (Exception e) when (e is IndexOutOfRangeException || e is OverflowException || e is OutOfMemoryException)
             {
@@ -58,7 +61,7 @@ namespace DmitryBrant.ImageFormats
             }
         }
 
-        private static long[] DecodeTile(byte[] data, int tileWidth, int tileHeight, bool smooth)
+        private static long[] DecodeTile(byte[] data, int tileWidth, int tileHeight, bool smooth, bool wide)
         {
             var input = new BitInput(data);
             if (data.Length < 2 || data[0] != 0xDD || data[1] != 0x99)
@@ -81,16 +84,16 @@ namespace DmitryBrant.ImageFormats
             DecodeBitPlanes(input, a, nx, ny, planes0, planes1, planes2);
 
             // The sum of all pixels goes back into the first coefficient.
-            a[0] = sumAll;
+            a[0] = Wrap(sumAll, wide);
 
             // Undo the scaling.
             if (scale > 1)
             {
                 for (int i = 0; i < a.Length; i++)
-                    a[i] *= scale;
+                    a[i] = Wrap(a[i] * scale, wide);
             }
 
-            InverseTransform(a, nx, ny, smooth, scale);
+            InverseTransform(a, nx, ny, smooth, scale, wide);
             return a;
         }
 
@@ -407,7 +410,15 @@ namespace DmitryBrant.ImageFormats
         /// <summary>
         /// Inverts the H-transform of the nx by ny array a, in place.
         /// </summary>
-        private static void InverseTransform(long[] a, int nx, int ny, bool smooth, int scale)
+        /// <summary>
+        /// Truncates a value to 32 bits, unless doing 64-bit arithmetic.
+        /// </summary>
+        private static long Wrap(long v, bool wide)
+        {
+            return wide ? v : unchecked((int)v);
+        }
+
+        private static void InverseTransform(long[] a, int nx, int ny, bool smooth, int scale, bool wide)
         {
             int nmax = Math.Max(nx, ny);
             int log2n = CeilLog2(nmax);
@@ -432,7 +443,7 @@ namespace DmitryBrant.ImageFormats
             long nrnd2 = prnd2 - 1;
 
             // Round h0 to a multiple of bit2.
-            a[0] = (a[0] + (a[0] >= 0 ? prnd2 : nrnd2)) & mask2;
+            a[0] = Wrap(Wrap(a[0] + (a[0] >= 0 ? prnd2 : nrnd2), wide) & mask2, wide);
 
             int nxtop = 1, nytop = 1, nxf = nx, nyf = ny;
             int c = 1 << log2n;
@@ -466,7 +477,7 @@ namespace DmitryBrant.ImageFormats
                     Unshuffle(a, j, nxtop, ny, tmp);
 
                 if (smooth)
-                    Smooth(a, nxtop, nytop, ny, scale);
+                    Smooth(a, nxtop, nytop, ny, scale, wide);
 
                 int oddx = nxtop % 2, oddy = nytop % 2;
                 int ii;
@@ -479,25 +490,25 @@ namespace DmitryBrant.ImageFormats
 
                         // Round hx and hy to multiples of bit1, and hc to a multiple of bit0;
                         // h0 is already a multiple of bit2.
-                        hx = (hx + (hx >= 0 ? prnd1 : nrnd1)) & mask1;
-                        hy = (hy + (hy >= 0 ? prnd1 : nrnd1)) & mask1;
-                        hc = (hc + (hc >= 0 ? prnd0 : nrnd0)) & mask0;
+                        hx = Wrap(Wrap(hx + (hx >= 0 ? prnd1 : nrnd1), wide) & mask1, wide);
+                        hy = Wrap(Wrap(hy + (hy >= 0 ? prnd1 : nrnd1), wide) & mask1, wide);
+                        hc = Wrap(Wrap(hc + (hc >= 0 ? prnd0 : nrnd0), wide) & mask0, wide);
 
                         // Propagate bit 0 of hc to hx and hy.
                         long lowbit0 = hc & bit0;
-                        hx = hx >= 0 ? hx - lowbit0 : hx + lowbit0;
-                        hy = hy >= 0 ? hy - lowbit0 : hy + lowbit0;
+                        hx = Wrap(hx >= 0 ? hx - lowbit0 : hx + lowbit0, wide);
+                        hy = Wrap(hy >= 0 ? hy - lowbit0 : hy + lowbit0, wide);
 
                         // Propagate bits 0 and 1 of hc, hx and hy to h0.
                         long lowbit1 = (hc ^ hx ^ hy) & bit1;
-                        h0 = h0 >= 0
+                        h0 = Wrap(h0 >= 0
                             ? h0 + lowbit0 - lowbit1
-                            : h0 + (lowbit0 == 0 ? lowbit1 : lowbit0 - lowbit1);
+                            : h0 + (lowbit0 == 0 ? lowbit1 : lowbit0 - lowbit1), wide);
 
-                        a[s10 + 1] = (h0 + hx + hy + hc) >> shift;
-                        a[s10] = (h0 + hx - hy - hc) >> shift;
-                        a[s00 + 1] = (h0 - hx + hy - hc) >> shift;
-                        a[s00] = (h0 - hx - hy + hc) >> shift;
+                        a[s10 + 1] = Wrap(h0 + hx + hy + hc, wide) >> shift;
+                        a[s10] = Wrap(h0 + hx - hy - hc, wide) >> shift;
+                        a[s00 + 1] = Wrap(h0 - hx + hy - hc, wide) >> shift;
+                        a[s00] = Wrap(h0 - hx - hy + hc, wide) >> shift;
                         s00 += 2;
                         s10 += 2;
                     }
@@ -505,11 +516,11 @@ namespace DmitryBrant.ImageFormats
                     {
                         // Odd row length: the last element of the row.
                         long h0 = a[s00], hx = a[s10];
-                        hx = (hx >= 0 ? hx + prnd1 : hx + nrnd1) & mask1;
+                        hx = Wrap(Wrap(hx >= 0 ? hx + prnd1 : hx + nrnd1, wide) & mask1, wide);
                         long lowbit1 = hx & bit1;
-                        h0 = h0 >= 0 ? h0 - lowbit1 : h0 + lowbit1;
-                        a[s10] = (h0 + hx) >> shift;
-                        a[s00] = (h0 - hx) >> shift;
+                        h0 = Wrap(h0 >= 0 ? h0 - lowbit1 : h0 + lowbit1, wide);
+                        a[s10] = Wrap(h0 + hx, wide) >> shift;
+                        a[s00] = Wrap(h0 - hx, wide) >> shift;
                     }
                 }
                 if (oddx != 0)
@@ -519,11 +530,11 @@ namespace DmitryBrant.ImageFormats
                     for (int j = 0; j < nytop - oddy; j += 2)
                     {
                         long h0 = a[s00], hy = a[s00 + 1];
-                        hy = (hy >= 0 ? hy + prnd1 : hy + nrnd1) & mask1;
+                        hy = Wrap(Wrap(hy >= 0 ? hy + prnd1 : hy + nrnd1, wide) & mask1, wide);
                         long lowbit1 = hy & bit1;
-                        h0 = h0 >= 0 ? h0 - lowbit1 : h0 + lowbit1;
-                        a[s00 + 1] = (h0 + hy) >> shift;
-                        a[s00] = (h0 - hy) >> shift;
+                        h0 = Wrap(h0 >= 0 ? h0 - lowbit1 : h0 + lowbit1, wide);
+                        a[s00 + 1] = Wrap(h0 + hy, wide) >> shift;
+                        a[s00] = Wrap(h0 - hy, wide) >> shift;
                         s00 += 2;
                     }
                     if (oddy != 0)
@@ -562,7 +573,7 @@ namespace DmitryBrant.ImageFormats
         /// Adjusts the differences in the nxtop by nytop block of coefficients to make the
         /// image smoother, while staying within the precision lost to the scale factor.
         /// </summary>
-        private static void Smooth(long[] a, int nxtop, int nytop, int ny, int scale)
+        private static void Smooth(long[] a, int nxtop, int nytop, int ny, int scale, bool wide)
         {
             // Since the encoder rounded when dividing by the scale factor, the biggest
             // permitted change is scale / 2.
@@ -571,7 +582,9 @@ namespace DmitryBrant.ImageFormats
                 return;
             int ny2 = ny << 1;
 
-            // The coefficients at the edges aren't adjusted.
+            // The coefficients at the edges aren't adjusted. (In 32-bit mode, every
+            // intermediate result is wrapped as CFITSIO's arithmetic would be, before it's
+            // compared or shifted right.)
 
             // Adjust the x differences hx.
             for (int i = 2; i < nxtop - 2; i += 2)
@@ -582,17 +595,17 @@ namespace DmitryBrant.ImageFormats
                     // hm and hp are the sums (h0) of the previous and next zones in x.
                     long hm = a[s00 - ny2], h0 = a[s00], hp = a[s00 + ny2];
                     // diff is 8 * the hx slope that would match the neighboring zones.
-                    long diff = hp - hm;
+                    long diff = Wrap(hp - hm, wide);
                     // Monotonicity constraints on diff
-                    long dmax = Math.Max(Math.Min(hp - h0, h0 - hm), 0) << 2;
-                    long dmin = Math.Min(Math.Max(hp - h0, h0 - hm), 0) << 2;
+                    long dmax = Wrap(Math.Max(Math.Min(Wrap(hp - h0, wide), Wrap(h0 - hm, wide)), 0) << 2, wide);
+                    long dmin = Wrap(Math.Min(Math.Max(Wrap(hp - h0, wide), Wrap(h0 - hm, wide)), 0) << 2, wide);
                     if (dmin < dmax)
                     {
                         diff = Math.Max(Math.Min(diff, dmax), dmin);
-                        long s = diff - (a[s10] << 3);
-                        s = s >= 0 ? s >> 3 : (s + 7) >> 3;
+                        long s = Wrap(diff - Wrap(a[s10] << 3, wide), wide);
+                        s = s >= 0 ? s >> 3 : Wrap(s + 7, wide) >> 3;
                         s = Math.Max(Math.Min(s, smax), -smax);
-                        a[s10] += s;
+                        a[s10] = Wrap(a[s10] + s, wide);
                     }
                     s00 += 2;
                     s10 += 2;
@@ -606,16 +619,16 @@ namespace DmitryBrant.ImageFormats
                 for (int j = 2; j < nytop - 2; j += 2)
                 {
                     long hm = a[s00 - 2], h0 = a[s00], hp = a[s00 + 2];
-                    long diff = hp - hm;
-                    long dmax = Math.Max(Math.Min(hp - h0, h0 - hm), 0) << 2;
-                    long dmin = Math.Min(Math.Max(hp - h0, h0 - hm), 0) << 2;
+                    long diff = Wrap(hp - hm, wide);
+                    long dmax = Wrap(Math.Max(Math.Min(Wrap(hp - h0, wide), Wrap(h0 - hm, wide)), 0) << 2, wide);
+                    long dmin = Wrap(Math.Min(Math.Max(Wrap(hp - h0, wide), Wrap(h0 - hm, wide)), 0) << 2, wide);
                     if (dmin < dmax)
                     {
                         diff = Math.Max(Math.Min(diff, dmax), dmin);
-                        long s = diff - (a[s00 + 1] << 3);
-                        s = s >= 0 ? s >> 3 : (s + 7) >> 3;
+                        long s = Wrap(diff - Wrap(a[s00 + 1] << 3, wide), wide);
+                        s = s >= 0 ? s >> 3 : Wrap(s + 7, wide) >> 3;
                         s = Math.Max(Math.Min(s, smax), -smax);
-                        a[s00 + 1] += s;
+                        a[s00 + 1] = Wrap(a[s00 + 1] + s, wide);
                     }
                     s00 += 2;
                 }
@@ -633,23 +646,23 @@ namespace DmitryBrant.ImageFormats
                     long hmp = a[s00 - ny2 + 2], hpp = a[s00 + ny2 + 2];
                     long h0 = a[s00];
                     // diff is 64 * the hc value that would match the neighboring zones.
-                    long diff = hpp + hmm - hmp - hpm;
+                    long diff = Wrap(hpp + hmm - hmp - hpm, wide);
                     // Twice the x and y slopes in this zone
-                    long hx2 = a[s10] << 1, hy2 = a[s00 + 1] << 1;
+                    long hx2 = Wrap(a[s10] << 1, wide), hy2 = Wrap(a[s00 + 1] << 1, wide);
                     // Monotonicity constraints on 64 * hc
-                    long m1 = Math.Min(Math.Max(hpp - h0, 0) - hx2 - hy2, Math.Max(h0 - hpm, 0) + hx2 - hy2);
-                    long m2 = Math.Min(Math.Max(h0 - hmp, 0) - hx2 + hy2, Math.Max(hmm - h0, 0) + hx2 + hy2);
-                    long dmax = Math.Min(m1, m2) << 4;
-                    m1 = Math.Max(Math.Min(hpp - h0, 0) - hx2 - hy2, Math.Min(h0 - hpm, 0) + hx2 - hy2);
-                    m2 = Math.Max(Math.Min(h0 - hmp, 0) - hx2 + hy2, Math.Min(hmm - h0, 0) + hx2 + hy2);
-                    long dmin = Math.Max(m1, m2) << 4;
+                    long m1 = Math.Min(Wrap(Math.Max(Wrap(hpp - h0, wide), 0) - hx2 - hy2, wide), Wrap(Math.Max(Wrap(h0 - hpm, wide), 0) + hx2 - hy2, wide));
+                    long m2 = Math.Min(Wrap(Math.Max(Wrap(h0 - hmp, wide), 0) - hx2 + hy2, wide), Wrap(Math.Max(Wrap(hmm - h0, wide), 0) + hx2 + hy2, wide));
+                    long dmax = Wrap(Math.Min(m1, m2) << 4, wide);
+                    m1 = Math.Max(Wrap(Math.Min(Wrap(hpp - h0, wide), 0) - hx2 - hy2, wide), Wrap(Math.Min(Wrap(h0 - hpm, wide), 0) + hx2 - hy2, wide));
+                    m2 = Math.Max(Wrap(Math.Min(Wrap(h0 - hmp, wide), 0) - hx2 + hy2, wide), Wrap(Math.Min(Wrap(hmm - h0, wide), 0) + hx2 + hy2, wide));
+                    long dmin = Wrap(Math.Max(m1, m2) << 4, wide);
                     if (dmin < dmax)
                     {
                         diff = Math.Max(Math.Min(diff, dmax), dmin);
-                        long s = diff - (a[s10 + 1] << 6);
-                        s = s >= 0 ? s >> 6 : (s + 63) >> 6;
+                        long s = Wrap(diff - Wrap(a[s10 + 1] << 6, wide), wide);
+                        s = s >= 0 ? s >> 6 : Wrap(s + 63, wide) >> 6;
                         s = Math.Max(Math.Min(s, smax), -smax);
-                        a[s10 + 1] += s;
+                        a[s10 + 1] = Wrap(a[s10 + 1] + s, wide);
                     }
                     s00 += 2;
                     s10 += 2;

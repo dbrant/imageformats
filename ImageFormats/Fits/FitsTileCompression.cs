@@ -44,6 +44,8 @@ namespace DmitryBrant.ImageFormats
         private static double[] BuildRandomValues()
         {
             // Park and Miller's minimal standard generator, as specified by the convention.
+            // CFITSIO keeps the values in single precision (but does its arithmetic with
+            // them in double precision), so to get exactly the same results, so do we.
             const double a = 16807.0, m = 2147483647.0;
             double seed = 1;
             var values = new double[NumRandom];
@@ -51,7 +53,7 @@ namespace DmitryBrant.ImageFormats
             {
                 double temp = a * seed;
                 seed = temp - m * Math.Floor(temp / m);
-                values[i] = seed / m;
+                values[i] = (float)(seed / m);
             }
             return values;
         }
@@ -313,7 +315,15 @@ namespace DmitryBrant.ImageFormats
                 if (!hdu.Cards.TryGetValue("ZNAME" + i, out var n))
                     break;
                 if (string.Equals(n.Trim(), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    // The value may also be a logical (T or F), e.g. for SMOOTH.
+                    string value = hdu.GetString("ZVAL" + i, "");
+                    if (value == "T")
+                        return 1;
+                    if (value == "F")
+                        return 0;
                     return hdu.GetNumber("ZVAL" + i, defaultValue);
+                }
             }
             return defaultValue;
         }
@@ -430,7 +440,7 @@ namespace DmitryBrant.ImageFormats
                 case "PLIO_1":
                     return PlioDecode(bytes, count);
                 case "HCOMPRESS_1":
-                    return FitsHcompress.Decode(bytes, tileW, tileH, smooth);
+                    return FitsHcompress.Decode(bytes, tileW, tileH, smooth, bitpix is not (8 or 16));
                 default:
                     throw new ImageDecodeException("Unsupported FITS compression: " + algorithm);
             }
