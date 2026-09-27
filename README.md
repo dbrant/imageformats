@@ -16,7 +16,7 @@ imageformats
 - .CUT (Dr. Halo)
 - .XPM (X Window PixMap)
 - .DEEP (TVPaint IFF DEEP images)
-- .FITS (experimental support)
+- .FITS, .FIT, .FTS (astronomical images, including image cubes and multi-extension files)
 - .DCM (DICOM medical images, including JPEG, JPEG-LS, JPEG 2000 and RLE compressed ones)
 - .JP2, .J2K, .J2C, .JPF (JPEG 2000)
 - .ART (AOL Johnson-Grace images)
@@ -62,9 +62,9 @@ for (int y = 0; y < image.Height; y++)
 bitmap.UnlockBits(bits);
 ```
 
-DICOM files can contain more than one frame (for example, an ultrasound cine loop, or
-an enhanced multi-frame CT series). `ImageData.Load` returns the first frame; to get at
-the others, use `DicomReader` directly:
+DICOM and FITS files can contain more than one frame (for example, an ultrasound cine
+loop, or the planes of an astronomical image cube). `ImageData.Load` returns the first
+frame; to get at the others, use `DicomReader` or `FitsReader` directly:
 
 ```csharp
 int count = DicomReader.GetFrameCount("series.dcm");
