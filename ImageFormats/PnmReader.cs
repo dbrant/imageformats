@@ -23,6 +23,9 @@ namespace DmitryBrant.ImageFormats
     /// </summary>
     public static class PnmReader
     {
+        private const long maxPnmSize = 50000000;
+        private static readonly char[] whitespace = { ' ', '\t', '\r', '\n' };
+
         /// <summary>
         /// Load a portable picture map (either PPM, PGM, or PBM) into an ImageData object.
         /// </summary>
@@ -43,7 +46,7 @@ namespace DmitryBrant.ImageFormats
         {
             int bytePtr = 0;
             byte[] bytes = new byte[inStream.Length];
-            inStream.Read(bytes, 0, bytes.Length);
+            inStream.ReadExactly(bytes);
             
             int[] lineInts = new int[1024];
             int lineIntsRead;
@@ -338,6 +341,177 @@ namespace DmitryBrant.ImageFormats
                     intArray[numIntsRead++] = b - '0';
                 }
             } while (bytePtr < bytes.Length && numIntsRead < numIntsToRead);
+        }
+
+        public static void GetInfo(Stream stream, ref long fileSize, ref int imgWidth, ref int imgHeight)
+        {
+            string line;
+            string[] lineArray;
+            char pnmType;
+            int bmpWidth = -1, bmpHeight = -1, bmpMaxVal = -1;
+            fileSize = 0;
+
+            //check if the format is correct...
+            if ((char)stream.ReadByte() != 'P') throw new ImageDecodeException("Incorrect file format.");
+            pnmType = (char)stream.ReadByte();
+            if ((pnmType < '1') || (pnmType > '6')) throw new ImageDecodeException("Unrecognized bitmap type.");
+
+            //if it's monochrome, it won't have a maxval, so set it to 1
+            if ((pnmType == '1') || (pnmType == '4')) bmpMaxVal = 1;
+
+            while (stream.Position < 1000)
+            {
+                line = ReadLine(stream);
+                if (line.Length == 0) continue;
+                if (line[0] == '#') continue;
+                lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+                if (lineArray.Length == 0) continue;
+
+                for (int i = 0; i < lineArray.Length; i++)
+                {
+                    if (bmpWidth == -1) { int.TryParse(lineArray[i], out bmpWidth); }
+                    else if (bmpHeight == -1) { int.TryParse(lineArray[i], out bmpHeight); }
+                    else if (bmpMaxVal == -1) { int.TryParse(lineArray[i], out bmpMaxVal); }
+                }
+
+                //check if we have all necessary attributes
+                if ((bmpWidth != -1) && (bmpHeight != -1) && (bmpMaxVal != -1))
+                    break;
+            }
+
+            //check for nonsensical dimensions
+            if ((bmpWidth <= 0) || (bmpHeight <= 0) || (bmpMaxVal <= 0))
+                throw new ImageDecodeException("Invalid image dimensions.");
+
+            imgWidth = bmpWidth;
+            imgHeight = bmpHeight;
+
+            int numPixels = bmpWidth * bmpHeight;
+            int maxElementCount = numPixels * 4;
+
+            try
+            {
+                if (pnmType == '1') //monochrome bitmap (ascii)
+                {
+                    int elementCount = 0;
+                    byte elementVal;
+                    while (stream.Position < maxPnmSize)
+                    {
+                        line = ReadLine(stream);
+                        if (line.Length == 0) continue;
+                        if (line[0] == '#') continue;
+
+                        lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+                        for (int i = 0; i < lineArray.Length; i++)
+                        {
+                            if (elementCount >= maxElementCount) break;
+                            elementVal = (byte)(lineArray[i] == "0" ? 255 : 0);
+                            elementCount += 4;
+                        }
+                        if (elementCount >= maxElementCount) break;
+                    }
+                }
+                else if (pnmType == '2') //grayscale bitmap (ascii)
+                {
+                    int elementCount = 0;
+                    int elementVal;
+                    while (stream.Position < maxPnmSize)
+                    {
+                        line = ReadLine(stream);
+                        if (line.Length == 0) continue;
+                        if (line[0] == '#') continue;
+
+                        lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+                        for (int i = 0; i < lineArray.Length; i++)
+                        {
+                            if (elementCount >= maxElementCount) break;
+                            if (!int.TryParse(lineArray[i], out elementVal))
+                            {
+                                elementCount = maxElementCount;
+                                break;
+                            }
+                            elementCount += 4;
+                        }
+                        if (elementCount >= maxElementCount) break;
+                    }
+                }
+                else if (pnmType == '3') //color bitmap (ascii)
+                {
+                    int elementCount = 0, elementMod = 2;
+                    while (stream.Position < maxPnmSize)
+                    {
+                        line = ReadLine(stream);
+                        if (line.Length == 0) continue;
+                        if (line[0] == '#') continue;
+
+                        lineArray = line.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+                        for (int i = 0; i < lineArray.Length; i++)
+                        {
+                            if (elementCount >= maxElementCount) break;
+                            if (!int.TryParse(lineArray[i], out int elementVal))
+                            {
+                                elementCount = maxElementCount;
+                                break;
+                            }
+                            elementMod--;
+                            if (elementMod < 0) { elementCount += 4; elementMod = 2; }
+                        }
+                        if (elementCount >= maxElementCount) break;
+                    }
+                }
+                else if (pnmType == '4') //monochrome bitmap (binary)
+                {
+                    stream.Seek((maxElementCount / 8) + 1, SeekOrigin.Current);
+                }
+                else if (pnmType == '5') //grayscale bitmap (binary)
+                {
+                    if (bmpMaxVal < 256)
+                    {
+                        stream.Seek(numPixels, SeekOrigin.Current);
+                    }
+                    else if (bmpMaxVal < 65536)
+                    {
+                        stream.Seek(numPixels * 2, SeekOrigin.Current);
+                    }
+                }
+                else if (pnmType == '6') //color bitmap (binary)
+                {
+                    if (bmpMaxVal < 256)
+                    {
+                        stream.Seek(numPixels * 3, SeekOrigin.Current);
+                    }
+                    else if (bmpMaxVal < 65536)
+                    {
+                        stream.Seek(numPixels * 6, SeekOrigin.Current);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                // keep the partial size in case of unexpected end-of-file
+                Util.log("Error while processing PNM file: " + e.Message);
+            }
+
+            fileSize = stream.Position;
+        }
+
+        private static string ReadLine(Stream stream)
+        {
+            string str = "";
+            byte[] lineBytes = new byte[1024];
+            int startPos = (int)stream.Position;
+            stream.ReadExactly(lineBytes, 0, 1024);
+            int strLen = 0;
+            while (strLen < 1024)
+            {
+                if ((lineBytes[strLen] == '\r') || (lineBytes[strLen] == '\n')) { strLen++; break; }
+                strLen++;
+            }
+            if (strLen > 1)
+                str = Encoding.ASCII.GetString(lineBytes, 0, strLen - 1);
+
+            stream.Position = startPos + strLen;
+            return str;
         }
     }
 }

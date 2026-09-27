@@ -412,6 +412,112 @@ namespace DmitryBrant.ImageFormats
             return Util.LoadRgba(imgWidth, imgHeight, bmpData);
         }
 
+        public static void GetInfo(Stream stream, ref long fileSize, ref int imgWidth, ref int imgHeight)
+        {
+            fileSize = 0;
+            imgWidth = -1;
+            imgHeight = -1;
+            int imgBpp = -1;
+            var reader = new BinaryReader(stream);
+
+            byte tempByte = reader.ReadByte();
+            if (tempByte != 10)
+                throw new ImageDecodeException("This is not a valid PCX file.");
+
+            tempByte = reader.ReadByte();
+            if (tempByte < 3 || tempByte > 5)
+                throw new ImageDecodeException("Only Version 3, 4, and 5 PCX files are supported.");
+
+            tempByte = reader.ReadByte();
+            if (tempByte != 1)
+                throw new ImageDecodeException("Invalid PCX compression type.");
+
+            imgBpp = reader.ReadByte();
+            if (imgBpp != 8 && imgBpp != 4 && imgBpp != 2 && imgBpp != 1)
+                throw new ImageDecodeException("Only 8, 4, 2, and 1-bit PCX samples are supported.");
+
+            ushort xmin = Util.LittleEndian(reader.ReadUInt16());
+            ushort ymin = Util.LittleEndian(reader.ReadUInt16());
+            ushort xmax = Util.LittleEndian(reader.ReadUInt16());
+            ushort ymax = Util.LittleEndian(reader.ReadUInt16());
+
+            imgWidth = xmax - xmin + 1;
+            imgHeight = ymax - ymin + 1;
+
+            if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
+                throw new ImageDecodeException("This PCX file appears to have invalid dimensions.");
+
+            Util.LittleEndian(reader.ReadUInt16()); //hdpi
+            Util.LittleEndian(reader.ReadUInt16()); //vdpi
+
+            reader.ReadBytes(48); //color palette
+            reader.ReadByte();
+
+            int numPlanes = reader.ReadByte();
+            int bytesPerLine = Util.LittleEndian(reader.ReadUInt16());
+            if (bytesPerLine == 0) bytesPerLine = xmax - xmin + 1;
+
+            stream.Seek(128, SeekOrigin.Begin);
+
+            int y = 0, i;
+            var rleReader = new RleReader(stream);
+            fileSize = stream.Position;
+
+            try
+            {
+                if (imgBpp == 1)
+                {
+                    for (y = 0; y < imgHeight; y++)
+                    {
+                        //add together all the planes...
+                        for (int p = 0; p < numPlanes; p++)
+                            for (i = 0; i < bytesPerLine; i++)
+                                rleReader.ReadByte();
+                    }
+                }
+                else
+                {
+                    if (numPlanes == 1)
+                    {
+                        for (y = 0; y < imgHeight; y++)
+                            for (i = 0; i < bytesPerLine; i++)
+                                rleReader.ReadByte();
+                    }
+                    else if (numPlanes == 3)
+                    {
+                        for (y = 0; y < imgHeight; y++)
+                        {
+                            for (i = 0; i < bytesPerLine; i++)
+                                rleReader.ReadByte();
+                            for (i = 0; i < bytesPerLine; i++)
+                                rleReader.ReadByte();
+                            for (i = 0; i < bytesPerLine; i++)
+                                rleReader.ReadByte();
+                        }
+                    }
+                }
+
+                fileSize = stream.Position;
+                if (imgBpp == 8 && numPlanes == 1)
+                {
+                    //expect a palette at the end of the file.
+                    //so, read bytes until we encounter 0xC...
+                    for (i = 0; i < 16; i++)
+                    {
+                        fileSize++;
+                        if (reader.ReadByte() == 0xC)
+                            break;
+                    }
+                    fileSize += 768;
+                }
+
+            }
+            catch (Exception e)
+            {
+                // keep the partial size in case of unexpected end-of-file
+                Util.log("Error while processing PCX file: " + e.Message);
+            }
+        }
 
         /// <summary>
         /// Helper class for reading a run-length encoded stream in a PCX file.

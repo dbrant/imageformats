@@ -40,9 +40,24 @@ namespace DmitryBrant.ImageFormats
         /// <returns>ImageData that contains the image that was read.</returns>
         public static ImageData Load(Stream stream)
         {
+            long fileSize = 0;
+            int imgWidth = 0;
+            int imgHeight = 0;
+            return Load(stream, true, ref fileSize, ref imgWidth, ref imgHeight);
+        }
+
+        /// <summary>
+        /// Reads a FITS (Flexible Image Transport System) image from a stream.
+        /// </summary>
+        /// <param name="stream">Stream from which to read the image.</param>
+        /// <param name="fileSize">Reference to a long that will receive the size of the file.</param>
+        /// <returns>ImageData that contains the image that was read.</returns>
+        public static ImageData Load(Stream stream, bool wantImage, ref long fileSize, ref int imgWidth, ref int imgHeight)
+        {
             byte[] tempBytes = new byte[HEADER_ITEM_LENGTH];
             ImageData bmp = null;
             int maxHeaderItems = 1000;
+            fileSize = 0;
 
             string itemStr;
             int bitsPerPixel = 0;
@@ -54,9 +69,14 @@ namespace DmitryBrant.ImageFormats
 
             for (int headerSeq = 0; headerSeq < 100; headerSeq++)
             {
+                if (stream.Position >= stream.Length)
+                {
+                    break;
+                }
                 for (int i = 0; i < maxHeaderItems; i++)
                 {
-                    stream.Read(tempBytes, 0, HEADER_ITEM_LENGTH);
+                    stream.ReadExactly(tempBytes, 0, HEADER_ITEM_LENGTH);
+                    fileSize += HEADER_ITEM_LENGTH;
 
                     itemStr = Encoding.ASCII.GetString(tempBytes, 0, HEADER_ITEM_LENGTH);
                     if (itemStr.IndexOf('/') > 0)
@@ -108,7 +128,9 @@ namespace DmitryBrant.ImageFormats
 
                 if (stream.Position % HEADER_BLOCK_LENGTH > 0)
                 {
-                    stream.Seek(HEADER_BLOCK_LENGTH - (stream.Position % HEADER_BLOCK_LENGTH), SeekOrigin.Current);
+                    int seek = HEADER_BLOCK_LENGTH - (int)(stream.Position % HEADER_BLOCK_LENGTH);
+                    stream.Seek(seek, SeekOrigin.Current);
+                    fileSize += seek;
                 }
 
                 for (int m = 0; m < dataMax.Length; m++)
@@ -152,15 +174,23 @@ namespace DmitryBrant.ImageFormats
                 }
                 else
                 {
-                    bmp = LoadImageData(stream, bitsPerPixel, numAxes, axisLength[0], axisLength[1], axisLength[2], dataMin, dataMax);
+                    if (wantImage)
+                    {
+                        bmp = LoadImageData(stream, bitsPerPixel, numAxes, axisLength[0], axisLength[1], axisLength[2], dataMin, dataMax);
+                    }
+                    imgWidth = axisLength[0];
+                    imgHeight = axisLength[1];
                 }
 
+                fileSize += dataSize;
                 stream.Seek(prevPos + dataSize, SeekOrigin.Begin);
 
                 // again, align to the next block
                 if (stream.Position % HEADER_BLOCK_LENGTH > 0)
                 {
-                    stream.Seek(HEADER_BLOCK_LENGTH - (stream.Position % HEADER_BLOCK_LENGTH), SeekOrigin.Current);
+                    int seek = HEADER_BLOCK_LENGTH - (int)(stream.Position % HEADER_BLOCK_LENGTH);
+                    stream.Seek(seek, SeekOrigin.Current);
+                    fileSize += seek;
                 }
             }
             return bmp;
@@ -208,7 +238,7 @@ namespace DmitryBrant.ImageFormats
                                 f = reader.ReadElement();
 
                                 f = (f - dataMin[0]) / (dataMax[0] - dataMin[0]);
-                                f = Math.Min(f *= 255, 255);
+                                f = Math.Min(f * 255, 255);
 
                                 bmpData[4 * (y * width + x) + 2] = (byte)f;
                             }
@@ -220,7 +250,7 @@ namespace DmitryBrant.ImageFormats
                                 f = reader.ReadElement();
 
                                 f = (f - dataMin[1]) / (dataMax[1] - dataMin[1]);
-                                f = Math.Min(f *= 255, 255);
+                                f = Math.Min(f * 255, 255);
 
                                 bmpData[4 * (y * width + x) + 1] = (byte)f;
                             }
@@ -232,7 +262,7 @@ namespace DmitryBrant.ImageFormats
                                 f = reader.ReadElement();
 
                                 f = (f - dataMin[2]) / (dataMax[2] - dataMin[2]);
-                                f = Math.Min(f *= 255, 255);
+                                f = Math.Min(f * 255, 255);
 
                                 bmpData[4 * (y * width + x)] = (byte)f;
                             }
@@ -292,7 +322,7 @@ namespace DmitryBrant.ImageFormats
             {
                 if (bitsPerElement == -64)
                 {
-                    stream.Read(bytes, 0, 8);
+                    stream.ReadExactly(bytes, 0, 8);
                     byte b = bytes[0]; bytes[0] = bytes[7]; bytes[7] = b;
                     b = bytes[1]; bytes[1] = bytes[6]; bytes[6] = b;
                     b = bytes[2]; bytes[2] = bytes[5]; bytes[5] = b;
@@ -301,24 +331,24 @@ namespace DmitryBrant.ImageFormats
                 }
                 else if (bitsPerElement == -32)
                 {
-                    stream.Read(bytes, 0, 4);
+                    stream.ReadExactly(bytes, 0, 4);
                     byte b = bytes[0]; bytes[0] = bytes[3]; bytes[3] = b;
                     b = bytes[1]; bytes[1] = bytes[2]; bytes[2] = b;
                     return BitConverter.ToSingle(bytes, 0);
                 }
                 else if (bitsPerElement == 32)
                 {
-                    stream.Read(bytes, 0, 4);
+                    stream.ReadExactly(bytes, 0, 4);
                     return (int)Util.BigEndian(BitConverter.ToUInt32(bytes, 0));
                 }
                 else if (bitsPerElement == 16)
                 {
-                    stream.Read(bytes, 0, 2);
+                    stream.ReadExactly(bytes, 0, 2);
                     return (short)Util.BigEndian(BitConverter.ToUInt16(bytes, 0));
                 }
                 else if (bitsPerElement == 8)
                 {
-                    stream.Read(bytes, 0, 1);
+                    stream.ReadExactly(bytes, 0, 1);
                     return bytes[0];
                 }
                 return 0;

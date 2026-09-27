@@ -170,7 +170,7 @@ namespace DmitryBrant.ImageFormats
 
             //read the first few bytes of the file to determine what format it is...
             byte[] header = new byte[256];
-            stream.Read(header, 0, header.Length);
+            stream.ReadExactly(header);
             stream.Seek(0, SeekOrigin.Begin);
 
             if ((header[0] == 0xA) && (header[1] <= 0x5) && (header[2] == 0x1) && ((header[3] == 0x1) || (header[3] == 0x2) || (header[3] == 0x4) || (header[3] == 0x8)))
