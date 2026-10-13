@@ -79,7 +79,7 @@ namespace DmitryBrant.ImageFormats
             int imgWidth = xmax - xmin + 1;
             int imgHeight = ymax - ymin + 1;
 
-            if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
+            if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 8192) || (imgHeight > 8192))
                 throw new ImageDecodeException("This PCX file appears to have invalid dimensions.");
 
             Util.LittleEndian(reader.ReadUInt16()); //hdpi
@@ -209,6 +209,8 @@ namespace DmitryBrant.ImageFormats
             stream.Seek(128, SeekOrigin.Begin);
             int x, y, i;
 
+            // From this point forward, RleReader takes control of the stream, and all further reads MUST be
+            // done through it, since it caches the underlying stream in large chunks for performance reasons.
             var rleReader = new RleReader(stream);
 
             try
@@ -444,7 +446,7 @@ namespace DmitryBrant.ImageFormats
             imgWidth = xmax - xmin + 1;
             imgHeight = ymax - ymin + 1;
 
-            if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 32767) || (imgHeight > 32767))
+            if ((imgWidth < 1) || (imgHeight < 1) || (imgWidth > 4096) || (imgHeight > 4096))
                 throw new ImageDecodeException("This PCX file appears to have invalid dimensions.");
 
             Util.LittleEndian(reader.ReadUInt16()); //hdpi
@@ -460,8 +462,11 @@ namespace DmitryBrant.ImageFormats
             stream.Seek(128, SeekOrigin.Begin);
 
             int y = 0, i;
+
+            // From this point forward, RleReader takes control of the stream, and all further reads MUST be
+            // done through it, since it caches the underlying stream in large chunks for performance reasons.
             var rleReader = new RleReader(stream);
-            fileSize = stream.Position;
+            fileSize = rleReader.Position;
 
             try
             {
@@ -497,7 +502,7 @@ namespace DmitryBrant.ImageFormats
                     }
                 }
 
-                fileSize = stream.Position;
+                fileSize = rleReader.Position;
                 if (imgBpp == 8 && numPlanes == 1)
                 {
                     //expect a palette at the end of the file.
@@ -505,7 +510,10 @@ namespace DmitryBrant.ImageFormats
                     for (i = 0; i < 16; i++)
                     {
                         fileSize++;
-                        if (reader.ReadByte() == 0xC)
+                        int b = rleReader.ReadRawByte();
+                        if (b < 0)
+                            throw new EndOfStreamException();
+                        if (b == 0xC)
                             break;
                     }
                     fileSize += 768;
@@ -521,26 +529,56 @@ namespace DmitryBrant.ImageFormats
 
         /// <summary>
         /// Helper class for reading a run-length encoded stream in a PCX file.
+        /// Reads the underlying stream in large chunks, since reading it one byte at a time can be very slow,
+        /// so the underlying stream ends up ahead of this reader: use Position instead of the stream's own position.
         /// </summary>
         private class RleReader(Stream stream)
         {
+            private const int CacheSize = 0x10000;
+
             private int currentByte = 0;
             private int runLength = 0;
             private readonly Stream stream = stream;
+            private readonly byte[] cache = new byte[CacheSize];
+            private int cachePos = 0;
+            private int cacheLength = 0;
+            // Position in the stream that corresponds to the start of the cache.
+            private long cacheStart = stream.Position;
+
+            /// <summary>
+            /// Position in the stream of the next raw (encoded) byte to be read.
+            /// </summary>
+            public long Position => cacheStart + cachePos;
 
             public int ReadByte()
             {
                 runLength--;
                 if (runLength <= 0)
                 {
-                    currentByte = stream.ReadByte();
+                    currentByte = ReadRawByte();
                     if (currentByte > 191)
                     {
                         runLength = currentByte - 192;
-                        currentByte = stream.ReadByte();
+                        currentByte = ReadRawByte();
                     }
                 }
                 return currentByte;
+            }
+
+            /// <summary>
+            /// Reads the next byte from the stream without decoding it, or returns -1 at the end of the stream.
+            /// </summary>
+            public int ReadRawByte()
+            {
+                if (cachePos >= cacheLength)
+                {
+                    cacheStart += cacheLength;
+                    cachePos = 0;
+                    cacheLength = stream.Read(cache, 0, CacheSize);
+                    if (cacheLength == 0)
+                        return -1;
+                }
+                return cache[cachePos++];
             }
         }
     }
