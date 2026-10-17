@@ -22,6 +22,7 @@ imageformats
 - .ART (AOL Johnson-Grace images)
 - .PSP, .PSPIMAGE (Paint Shop Pro images)
 - .AWD (Microsoft Fax documents)
+- .PSD, .PSB, .PDD (Adobe Photoshop and PhotoDeluxe images)
 
 Usage
 -----
@@ -73,6 +74,15 @@ ImageData frame = DicomReader.Load("series.dcm", count - 1);
 // Or decode them all, one at a time, parsing the file only once:
 foreach (ImageData frame in DicomReader.LoadFrames("series.dcm"))
     ...
+```
+
+Photoshop files normally contain a flattened copy of the picture, which is what
+`ImageData.Load` returns. When that copy is missing or only a placeholder (as in PhotoDeluxe
+files, or Photoshop files saved without "Maximize Compatibility"), the layers are composited
+instead. To make that choice yourself, use `PsdReader` directly:
+
+```csharp
+ImageData image = PsdReader.Load("picture.psd", PsdImageSource.Layers);
 ```
 
 Occasionally a source format stores its pixel data as an embedded image in some other

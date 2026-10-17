@@ -183,6 +183,10 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = RasReader.Load(stream);
             }
+            else if (PsdReader.HasSignature(header))
+            {
+                bmp = PsdReader.Load(stream);
+            }
             else if ((header.Length > 0x83) && (header[0x80] == 'D') && (header[0x81] == 'I') && (header[0x82] == 'C') && (header[0x83] == 'M'))
             {
                 bmp = DicomReader.Load(stream);
