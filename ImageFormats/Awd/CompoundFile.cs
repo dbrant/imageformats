@@ -7,7 +7,7 @@ using System.Text;
 
 A minimal, read-only reader for Microsoft Compound File Binary (a.k.a. OLE
 Structured Storage) files, which is the container format of Microsoft Fax (.AWD)
-documents, among many others.
+documents and FlashPix (.FPX) images, among many others.
 
 A compound file is a little file system inside a file. It is divided into sectors
 (usually 512 bytes), which are chained together by a file allocation table, the

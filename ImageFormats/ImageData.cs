@@ -233,6 +233,11 @@ namespace DmitryBrant.ImageFormats
                 // An OLE compound file, which could be one of many things, and only some of
                 // which are images.
                 bmp = AwdReader.LoadIfAwd(stream);
+                if (bmp == null)
+                {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    bmp = FpxReader.LoadIfFpx(stream);
+                }
             }
             else if (Jpeg2000Reader.HasJp2Signature(header) || Jpeg2000Reader.HasCodestreamSignature(header))
             {

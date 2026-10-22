@@ -24,6 +24,7 @@ imageformats
 - .AWD (Microsoft Fax documents)
 - .PSD, .PSB, .PDD (Adobe Photoshop and PhotoDeluxe images)
 - .FLI, .FLC (Autodesk Animator animations)
+- .FPX (FlashPix images)
 
 Usage
 -----

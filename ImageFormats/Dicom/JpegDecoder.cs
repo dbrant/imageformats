@@ -95,6 +95,7 @@ namespace DmitryBrant.ImageFormats
         }
 
         private readonly byte[] data;
+        private readonly bool autoColorTransform;
         private readonly HuffmanTable?[] dcTables = new HuffmanTable?[4];
         private readonly HuffmanTable?[] acTables = new HuffmanTable?[4];
         private readonly int[][] quantTables = new int[4][];
@@ -113,21 +114,23 @@ namespace DmitryBrant.ImageFormats
         private int bitCount;
         private bool hitMarker;
 
-        private JpegDecoder(byte[] data)
+        private JpegDecoder(byte[] data, bool autoColorTransform)
         {
             this.data = data;
+            this.autoColorTransform = autoColorTransform;
         }
 
         /// <summary>
-        /// Decodes a JPEG image. Lossy images with three components are converted from
-        /// YCbCr to RGB when the stream indicates that they are YCbCr (following the same
-        /// rules as libjpeg), in which case ColorConverted is set on the result.
+        /// Decodes a JPEG image. Unless autoColorTransform is false, lossy images with three
+        /// components are converted from YCbCr to RGB when the stream indicates that they are
+        /// YCbCr (following the same rules as libjpeg), in which case ColorConverted is set
+        /// on the result.
         /// </summary>
-        public static CodecImage Decode(byte[] data)
+        public static CodecImage Decode(byte[] data, bool autoColorTransform = true)
         {
             try
             {
-                return new JpegDecoder(data).Decode();
+                return new JpegDecoder(data, autoColorTransform).Decode();
             }
             catch (Exception e) when (e is IndexOutOfRangeException || e is ArgumentException)
             {
@@ -798,9 +801,9 @@ namespace DmitryBrant.ImageFormats
             }
             var result = Interleave(planes, strides, hScale, vScale);
 
-            if (components.Length == 3 && UseColorTransform())
+            if (autoColorTransform && components.Length == 3 && UseColorTransform())
             {
-                YccToRgb(result.Samples, maxVal);
+                YccToRgb(result.Samples, maxVal, 3);
                 result.ColorConverted = true;
             }
             return result;
@@ -818,13 +821,17 @@ namespace DmitryBrant.ImageFormats
             return true;
         }
 
-        private static void YccToRgb(int[] samples, int maxVal)
+        /// <summary>
+        /// Converts interleaved YCbCr samples to RGB in place. Each pixel is "stride" samples
+        /// long, of which the first three are converted, and any others left alone.
+        /// </summary>
+        public static void YccToRgb(int[] samples, int maxVal, int stride)
         {
             // Fixed-point arithmetic, as in libjpeg, to produce identical results.
             const int half = 1 << 15;
             const long crR = 91881, cbB = 116130, crG = -46802, cbG = -22554;   // 1.402, 1.772, -0.71414, -0.34414 (x 65536)
             int center = (maxVal + 1) / 2;
-            for (int i = 0; i + 2 < samples.Length; i += 3)
+            for (int i = 0; i + 2 < samples.Length; i += stride)
             {
                 int y = samples[i], cb = samples[i + 1] - center, cr = samples[i + 2] - center;
                 int r = y + (int)((crR * cr + half) >> 16);
