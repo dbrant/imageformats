@@ -127,29 +127,30 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = Load(f);
             }
-
             if (bmp == null)
             {
                 if (Path.GetExtension(fileName).Contains("tga", StringComparison.OrdinalIgnoreCase))
                     bmp = TgaReader.Load(fileName);
             }
-
             if (bmp == null)
             {
                 if (Path.GetExtension(fileName).Contains("cut", StringComparison.OrdinalIgnoreCase))
                     bmp = CutReader.Load(fileName);
             }
-
             if (bmp == null)
             {
                 if (Path.GetExtension(fileName).Contains("sgi", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(fileName).Contains("rgb", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(fileName).Contains("bw", StringComparison.OrdinalIgnoreCase))
                     bmp = SgiReader.Load(fileName);
             }
-
             if (bmp == null)
             {
                 if (Path.GetExtension(fileName).Contains("xpm", StringComparison.OrdinalIgnoreCase))
                     bmp = XpmReader.Load(fileName);
+            }
+            if (bmp == null)
+            {
+                if (Path.GetExtension(fileName).Contains("fli", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(fileName).Contains("flc", StringComparison.OrdinalIgnoreCase))
+                    bmp = FliReader.Load(fileName);
             }
 
             return bmp;
@@ -171,11 +172,7 @@ namespace DmitryBrant.ImageFormats
             stream.ReadExactly(header, 0, header.Length);
             stream.Seek(0, SeekOrigin.Begin);
 
-            if (FliReader.HasSignature(header))
-            {
-                bmp = FliReader.Load(stream);
-            }
-            else if ((header[0] == 0xA) && (header[1] <= 0x5) && (header[2] == 0x1) && ((header[3] == 0x1) || (header[3] == 0x2) || (header[3] == 0x4) || (header[3] == 0x8)))
+            if ((header[0] == 0xA) && (header[1] <= 0x5) && (header[2] == 0x1) && ((header[3] == 0x1) || (header[3] == 0x2) || (header[3] == 0x4) || (header[3] == 0x8)))
             {
                 bmp = PcxReader.Load(stream);
             }
