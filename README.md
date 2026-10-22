@@ -23,6 +23,7 @@ imageformats
 - .PSP, .PSPIMAGE (Paint Shop Pro images)
 - .AWD (Microsoft Fax documents)
 - .PSD, .PSB, .PDD (Adobe Photoshop and PhotoDeluxe images)
+- .FLI, .FLC (Autodesk Animator animations)
 
 Usage
 -----
@@ -63,9 +64,10 @@ for (int y = 0; y < image.Height; y++)
 bitmap.UnlockBits(bits);
 ```
 
-DICOM and FITS files can contain more than one frame (for example, an ultrasound cine
-loop, or the planes of an astronomical image cube). `ImageData.Load` returns the first
-frame; to get at the others, use `DicomReader` or `FitsReader` directly:
+DICOM, FITS and FLI/FLC files can contain more than one frame (for example, an ultrasound
+cine loop, the planes of an astronomical image cube, or an animation). `ImageData.Load`
+returns the first frame; to get at the others, use `DicomReader`, `FitsReader` or
+`FliReader` directly:
 
 ```csharp
 int count = DicomReader.GetFrameCount("series.dcm");
