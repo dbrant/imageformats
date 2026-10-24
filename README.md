@@ -26,6 +26,7 @@ imageformats
 - .FLI, .FLC (Autodesk Animator animations)
 - .FPX (FlashPix images)
 - .PPP (Serif PagePlus publications; reads the preview image stored in the file)
+- .TIF, .TIFF (TIFF images, including BigTIFF, multi-page, tiled, CCITT, LZW, Deflate and JPEG compressed ones)
 
 Usage
 -----
@@ -66,10 +67,10 @@ for (int y = 0; y < image.Height; y++)
 bitmap.UnlockBits(bits);
 ```
 
-DICOM, FITS and FLI/FLC files can contain more than one frame (for example, an ultrasound
-cine loop, the planes of an astronomical image cube, or an animation). `ImageData.Load`
-returns the first frame; to get at the others, use `DicomReader`, `FitsReader` or
-`FliReader` directly:
+DICOM, FITS, FLI/FLC and TIFF files can contain more than one frame (for example, an
+ultrasound cine loop, the planes of an astronomical image cube, an animation, or the
+pages of a fax). `ImageData.Load` returns the first frame; to get at the others, use
+`DicomReader`, `FitsReader`, `FliReader` or `TiffReader` directly:
 
 ```csharp
 int count = DicomReader.GetFrameCount("series.dcm");

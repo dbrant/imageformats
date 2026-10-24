@@ -138,6 +138,25 @@ namespace DmitryBrant.ImageFormats
             }
         }
 
+        /// <summary>
+        /// Combines a stream that holds only tables (an "abbreviated" JPEG stream of DQT and
+        /// DHT segments, as TIFF and FlashPix store separately) with image data that omits
+        /// them, by dropping the end marker of one and the start marker of the other.
+        /// </summary>
+        public static byte[] WithTables(byte[]? tables, ReadOnlySpan<byte> data)
+        {
+            if (tables == null || tables.Length < 2)
+                return data.ToArray();
+            int tablesLength = tables.AsSpan().LastIndexOf(new byte[] { 0xFF, 0xD9 });
+            if (tablesLength < 0)
+                tablesLength = tables.Length;
+            int skip = data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8 ? 2 : 0;
+            var result = new byte[tablesLength + data.Length - skip];
+            tables.AsSpan(0, tablesLength).CopyTo(result);
+            data[skip..].CopyTo(result.AsSpan(tablesLength));
+            return result;
+        }
+
         private CodecImage Decode()
         {
             if (data.Length < 4 || data[0] != 0xFF || data[1] != 0xD8)

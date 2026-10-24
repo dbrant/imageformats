@@ -895,7 +895,7 @@ namespace DmitryBrant.ImageFormats
                     for (int i = 0; i < count; i++)
                     {
                         double v = BinaryPrimitives.ReadSingleBigEndian(raw.AsSpan(i * 4));
-                        plane[i] = linear ? LinearToByte(v) : LinearToSrgbByte(v);
+                        plane[i] = linear ? LinearToByte(v) : ColorConversion.LinearToSrgbByte(v);
                     }
                     return plane;
                 }
@@ -924,19 +924,6 @@ namespace DmitryBrant.ImageFormats
             if (!(v > 0))
                 return 0;
             return v >= 1 ? (byte)255 : (byte)(int)(v * 255 + 0.5);
-        }
-
-        /// <summary>
-        /// Encodes a value in linear light, nominally between 0 and 1, as an 8-bit sRGB value.
-        /// </summary>
-        public static byte LinearToSrgbByte(double v)
-        {
-            if (!(v > 0)) // also catches NaN
-                return 0;
-            if (v >= 1)
-                return 255;
-            v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.Pow(v, 1 / 2.4) - 0.055;
-            return (byte)(int)(v * 255 + 0.5);
         }
 
         /// <summary>
@@ -996,8 +983,6 @@ namespace DmitryBrant.ImageFormats
         /// </summary>
         private static byte[][] LabToRgb(byte[] lp, byte[] ap, byte[] bp)
         {
-            static double FInv(double t) => t > 6.0 / 29 ? Math.Pow(t, 3) : 3 * Math.Pow(6.0 / 29, 2) * (t - 4.0 / 29);
-
             var rgb = new byte[][] { new byte[lp.Length], new byte[lp.Length], new byte[lp.Length] };
             var cache = new Dictionary<int, int>();
             for (int i = 0; i < lp.Length; i++)
@@ -1006,14 +991,7 @@ namespace DmitryBrant.ImageFormats
                 if (!cache.TryGetValue(key, out int packed))
                 {
                     // L* is scaled to 0..255, and a* and b* are offset by 128.
-                    double fy = (lp[i] * 100 / 255.0 + 16) / 116;
-                    double x = 0.96422 * FInv(fy + (ap[i] - 128) / 500.0);
-                    double y = FInv(fy);
-                    double z = 0.82521 * FInv(fy - (bp[i] - 128) / 200.0);
-                    // XYZ (D50) to linear sRGB, with Bradford adaptation to D65.
-                    packed = (LinearToSrgbByte(3.1338561 * x - 1.6168667 * y - 0.4906146 * z) << 16)
-                        | (LinearToSrgbByte(-0.9787684 * x + 1.9161415 * y + 0.0334540 * z) << 8)
-                        | LinearToSrgbByte(0.0719453 * x - 0.2289914 * y + 1.4052427 * z);
+                    packed = ColorConversion.LabToRgb(lp[i] * 100 / 255.0, ap[i] - 128, bp[i] - 128);
                     cache[key] = packed;
                 }
                 rgb[0][i] = (byte)(packed >> 16);

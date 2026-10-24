@@ -307,7 +307,7 @@ namespace DmitryBrant.ImageFormats
             {
                 if (band.Width == 0 || band.Height == 0)
                     continue;
-                byte[] pixels = CcittG4Decoder.Decode(data, band.Offset, band.Length, band.Width, band.Height, true);
+                byte[] pixels = CcittDecoder.DecodeG4(data, band.Offset, band.Length, band.Width, band.Height, true);
                 for (int row = 0; row < band.Height; row++, y++)
                 {
                     int outRow = y * rowScale * stride;

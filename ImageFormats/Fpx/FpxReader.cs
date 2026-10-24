@@ -325,29 +325,14 @@ namespace DmitryBrant.ImageFormats
             bool colorConverted = ((tile.Subtype >> 16) & 0xFF) == 1;
             int tableIndex = (int)(tile.Subtype >> 24);
 
-            var tileData = TileData(tile, data);
-            byte[] jpeg;
-            if (tableIndex == 0)
+            byte[]? tables = null;
+            if (tableIndex != 0)
             {
-                jpeg = tileData.ToArray();
-            }
-            else
-            {
-                // The tables are a JPEG stream of their own, which we splice onto the start
-                // of the tile, dropping the end marker of one and the start marker of the other.
-                var tables = contents.GetBlob(PidJpegTables | ((uint)tableIndex << 16))
+                tables = contents.GetBlob(PidJpegTables | ((uint)tableIndex << 16))
                     ?? throw new ImageDecodeException("FlashPix tile refers to missing JPEG tables.");
-                int tablesLength = tables.Length;
-                while (tablesLength >= 2 && !(tables[tablesLength - 2] == 0xFF && tables[tablesLength - 1] == 0xD9))
-                    tablesLength--;
-                tablesLength = Math.Max(tablesLength - 2, 0);
-                int skip = tileData.Length >= 2 && tileData[0] == 0xFF && tileData[1] == 0xD8 ? 2 : 0;
-                jpeg = new byte[tablesLength + tileData.Length - skip];
-                tables.AsSpan(0, tablesLength).CopyTo(jpeg);
-                tileData[skip..].CopyTo(jpeg.AsSpan(tablesLength));
             }
 
-            var image = JpegDecoder.Decode(jpeg, false);
+            var image = JpegDecoder.Decode(JpegDecoder.WithTables(tables, TileData(tile, data)), false);
             if (image.Components != channels)
                 throw new ImageDecodeException("FlashPix JPEG tile has the wrong number of channels.");
             if (image.Precision != 8)
