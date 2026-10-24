@@ -238,6 +238,16 @@ namespace DmitryBrant.ImageFormats
                     stream.Seek(0, SeekOrigin.Begin);
                     bmp = FpxReader.LoadIfFpx(stream);
                 }
+                if (bmp == null)
+                {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    bmp = PppReader.LoadIfPpp(stream);
+                }
+            }
+            else if ((header[0] == 'P') && (header[1] == 'K') && (header[2] == 3) && (header[3] == 4))
+            {
+                // A ZIP archive, of which we only know the PagePlus kind.
+                bmp = PppReader.LoadIfPpp(stream);
             }
             else if (Jpeg2000Reader.HasJp2Signature(header) || Jpeg2000Reader.HasCodestreamSignature(header))
             {

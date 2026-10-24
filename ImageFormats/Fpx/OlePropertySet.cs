@@ -31,6 +31,7 @@ namespace DmitryBrant.ImageFormats
         private const int VtUi2 = 18;
         private const int VtUi4 = 19;
         private const int VtBlob = 65;
+        private const int VtCf = 71;
         private const int VtVector = 0x1000;
 
         private readonly byte[] data;
@@ -116,6 +117,28 @@ namespace DmitryBrant.ImageFormats
             if (size > data.Length - offset - 4)
                 return null;
             return data.AsSpan(offset + 4, (int)size).ToArray();
+        }
+
+        /// <summary>
+        /// Gets the contents of a clipboard data property (such as the thumbnail in a
+        /// summary information property set) that holds a standard Windows clipboard
+        /// format, along with that format (e.g. 8 for CF_DIB). Returns null if the property
+        /// is missing or holds anything else.
+        /// </summary>
+        public byte[]? GetClipboardData(uint id, out int format)
+        {
+            format = 0;
+            if (!values.TryGetValue(id, out int offset) || types[id] != VtCf || offset + 12 > data.Length)
+                return null;
+
+            // The size counts a 32-bit tag, which is -1 for a Windows clipboard format, then
+            // the format itself, and then the data.
+            long size = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset));
+            int tag = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(offset + 4));
+            if (tag != -1 || size < 8 || size > data.Length - offset - 4)
+                return null;
+            format = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(offset + 8));
+            return data.AsSpan(offset + 12, (int)size - 8).ToArray();
         }
     }
 }

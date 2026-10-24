@@ -25,6 +25,7 @@ imageformats
 - .PSD, .PSB, .PDD (Adobe Photoshop and PhotoDeluxe images)
 - .FLI, .FLC (Autodesk Animator animations)
 - .FPX (FlashPix images)
+- .PPP (Serif PagePlus publications; reads the preview image stored in the file)
 
 Usage
 -----
