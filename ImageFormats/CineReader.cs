@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
@@ -301,10 +300,10 @@ namespace DmitryBrant.ImageFormats
                     uint cfaCode = (uint)(SetupInt(SetupCfa) ?? CfaVri);
                     cfa = (cfaCode & 0xFFFFFF) switch
                     {
-                        1 => new[] { 1, 2, 0, 1, 0, 1, 1, 2 }, // CFA_VRI
-                        2 => new[] { 2, 1, 1, 0, 1, 0, 2, 1 }, // CFA_VRIV6
-                        3 => new[] { 1, 2, 0, 1 }, // CFA_BAYER
-                        4 => new[] { 0, 1, 1, 2 }, // CFA_BAYERFLIP
+                        1 => [1, 2, 0, 1, 0, 1, 1, 2], // CFA_VRI
+                        2 => [2, 1, 1, 0, 1, 0, 2, 1], // CFA_VRIV6
+                        3 => [1, 2, 0, 1], // CFA_BAYER
+                        4 => [0, 1, 1, 2], // CFA_BAYERFLIP
                         _ => null
                     };
                     cfaWidth = cfa?.Length == 8 ? 4 : 2;
