@@ -20,7 +20,7 @@
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>    
-    <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;jpeg2000;jp2;j2k;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel;awd;fax;ccitt;psd;psb;pdd;photoshop;photodeluxe;adobe;fli;flc;flic;autodesk;animator;fpx;flashpix;kodak;ppp;pageplus;serif;tiff;tif;bigtiff</PackageTags>    
+    <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;jpeg2000;jp2;j2k;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel;awd;fax;ccitt;psd;psb;pdd;photoshop;photodeluxe;adobe;fli;flc;flic;autodesk;animator;fpx;flashpix;kodak;ppp;pageplus;serif;tiff;tif;bigtiff;ser;lucam;astrophotography</PackageTags>    
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>    
     <Nullable>enable</Nullable>   
   </PropertyGroup>
