@@ -28,6 +28,7 @@ imageformats
 - .PPP (Serif PagePlus publications; reads the preview image stored in the file)
 - .TIF, .TIFF (TIFF images, including BigTIFF, multi-page, tiled, CCITT, LZW, Deflate and JPEG compressed ones)
 - .SER (Lucam Recorder videos, as used for planetary imaging, including raw Bayer ones)
+- .CIN, .CINE (Phantom high-speed camera videos, including raw color and packed 10-bit ones)
 
 Usage
 -----
@@ -68,11 +69,11 @@ for (int y = 0; y < image.Height; y++)
 bitmap.UnlockBits(bits);
 ```
 
-DICOM, FITS, FLI/FLC, TIFF and SER files can contain more than one frame (for example,
-an ultrasound cine loop, the planes of an astronomical image cube, an animation, the
-pages of a fax, or a planetary video). `ImageData.Load` returns the first frame; to get
-at the others, use `DicomReader`, `FitsReader`, `FliReader`, `TiffReader` or `SerReader`
-directly:
+DICOM, FITS, FLI/FLC, TIFF, SER and Cine files can contain more than one frame (for
+example, an ultrasound cine loop, the planes of an astronomical image cube, an animation,
+the pages of a fax, or a planetary or high-speed video). `ImageData.Load` returns the
+first frame; to get at the others, use `DicomReader`, `FitsReader`, `FliReader`,
+`TiffReader`, `SerReader` or `CineReader` directly:
 
 ```csharp
 int count = DicomReader.GetFrameCount("series.dcm");

@@ -344,45 +344,17 @@ namespace DmitryBrant.ImageFormats
             }
 
             /// <summary>
-            /// Fills in the two missing channels at each pixel of a Bayer mosaic, by averaging
-            /// the neighboring pixels of each of those channels.
+            /// Fills in the two missing channels at each pixel of a Bayer mosaic.
             /// </summary>
             /// <param name="mosaic">One sample per pixel.</param>
             /// <param name="channels">The letters of the pattern, in the order of the output channels.</param>
             /// <returns>Three samples per pixel, in the order of the given channels.</returns>
             private int[] Demosaic(int[] mosaic, string channels)
             {
-                var cfa = new int[4];
+                Span<int> cfa = stackalloc int[4];
                 for (int i = 0; i < 4; i++)
                     cfa[i] = channels.IndexOf(pattern![i]);
-
-                var result = new int[width * height * 3];
-                Span<int> sum = stackalloc int[3];
-                Span<int> n = stackalloc int[3];
-                for (int y = 0; y < height; y++)
-                {
-                    int y0 = Math.Max(0, y - 1), y1 = Math.Min(height - 1, y + 1);
-                    for (int x = 0; x < width; x++)
-                    {
-                        int x0 = Math.Max(0, x - 1), x1 = Math.Min(width - 1, x + 1);
-                        sum.Clear();
-                        n.Clear();
-                        for (int yy = y0; yy <= y1; yy++)
-                        {
-                            for (int xx = x0; xx <= x1; xx++)
-                            {
-                                int c = cfa[((yy & 1) << 1) | (xx & 1)];
-                                sum[c] += mosaic[yy * width + xx];
-                                n[c]++;
-                            }
-                        }
-                        int i = y * width + x;
-                        int own = cfa[((y & 1) << 1) | (x & 1)];
-                        for (int c = 0; c < 3; c++)
-                            result[i * 3 + c] = c == own ? mosaic[i] : n[c] > 0 ? (sum[c] + n[c] / 2) / n[c] : 0;
-                    }
-                }
-                return result;
+                return ImageFormats.Demosaic.Bilinear(mosaic, width, height, cfa);
             }
 
             private static byte Scale(int value, int maxValue)
