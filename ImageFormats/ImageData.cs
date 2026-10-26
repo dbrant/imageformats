@@ -192,6 +192,10 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = CineReader.Load(stream);
             }
+            else if (DdsReader.HasSignature(header))
+            {
+                bmp = DdsReader.Load(stream);
+            }
             else if ((header[0] == 0x59) && (header[1] == 0xa6) && (header[2] == 0x6a) && (header[3] == 0x95))
             {
                 bmp = RasReader.Load(stream);
