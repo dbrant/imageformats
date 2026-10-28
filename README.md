@@ -30,6 +30,7 @@ imageformats
 - .SER (Lucam Recorder videos, as used for planetary imaging, including raw Bayer ones)
 - .CIN, .CINE (Phantom high-speed camera videos, including raw color and packed 10-bit ones)
 - .DDS (DirectDraw Surface textures, including BC1 to BC7 compressed ones, cube maps, texture arrays and volume textures)
+- .LFP, .LFR (Lytro light field camera pictures, both raw ones and refocus stacks)
 
 Usage
 -----
@@ -70,11 +71,14 @@ for (int y = 0; y < image.Height; y++)
 bitmap.UnlockBits(bits);
 ```
 
-DICOM, FITS, FLI/FLC, TIFF, SER, Cine and DDS files can contain more than one frame (for
+DICOM, FITS, FLI/FLC, TIFF, SER, Cine, DDS and Lytro files can contain more than one frame (for
 example, an ultrasound cine loop, the planes of an astronomical image cube, an animation,
-the pages of a fax, a planetary or high-speed video, or the faces of a cube map).
-`ImageData.Load` returns the first frame; to get at the others, use `DicomReader`,
-`FitsReader`, `FliReader`, `TiffReader`, `SerReader`, `CineReader` or `DdsReader` directly:
+the pages of a fax, a planetary or high-speed video, the faces of a cube map, or the focal
+planes of a refocusable picture).
+`ImageData.Load` returns the first frame (or, for a refocusable Lytro picture, the one
+focused at its default depth); to get at the others, use `DicomReader`,
+`FitsReader`, `FliReader`, `TiffReader`, `SerReader`, `CineReader`, `DdsReader` or
+`LfpReader` directly:
 
 ```csharp
 int count = DicomReader.GetFrameCount("series.dcm");
