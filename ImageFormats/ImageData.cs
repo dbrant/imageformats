@@ -180,9 +180,21 @@ namespace DmitryBrant.ImageFormats
             {
                 bmp = PnmReader.Load(stream);
             }
+            else if (RawReader.HasSignature(header))
+            {
+                bmp = RawReader.Load(stream);
+            }
             else if (TiffReader.HasSignature(header))
             {
-                bmp = TiffReader.Load(stream);
+                // Many camera raw formats are TIFF files as well. For those, we read the preview
+                // image, unless there isn't one.
+                byte[] data;
+                using (var ms = new MemoryStream())
+                {
+                    stream.CopyTo(ms);
+                    data = ms.ToArray();
+                }
+                bmp = RawReader.LoadIfRaw(data) ?? TiffReader.Load(data);
             }
             else if (SerReader.HasSignature(header))
             {
@@ -199,6 +211,10 @@ namespace DmitryBrant.ImageFormats
             else if (LfpReader.HasSignature(header))
             {
                 bmp = LfpReader.Load(stream);
+            }
+            else if (MngReader.HasSignature(header))
+            {
+                bmp = MngReader.Load(stream);
             }
             else if ((header[0] == 0x59) && (header[1] == 0xa6) && (header[2] == 0x6a) && (header[3] == 0x95))
             {

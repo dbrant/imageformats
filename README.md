@@ -31,6 +31,8 @@ imageformats
 - .CIN, .CINE (Phantom high-speed camera videos, including raw color and packed 10-bit ones)
 - .DDS (DirectDraw Surface textures, including BC1 to BC7 compressed ones, cube maps, texture arrays and volume textures)
 - .LFP, .LFR (Lytro light field camera pictures, both raw ones and refocus stacks)
+- .MNG, .JNG (Multiple-image Network Graphics animations, including ones with JNG and Delta-PNG images, and JPEG Network Graphics images)
+- .CR2, .CR3, .CRW, .NEF, .NRW, .ARW, .SR2, .SRF, .PEF, .ORF, .RW2, .RWL, .RAF, .DNG, .SRW, .KDC, .MRW, .MOS, .X3F, and other camera raw images (reads the preview image embedded in the file)
 
 Usage
 -----
@@ -71,14 +73,14 @@ for (int y = 0; y < image.Height; y++)
 bitmap.UnlockBits(bits);
 ```
 
-DICOM, FITS, FLI/FLC, TIFF, SER, Cine, DDS and Lytro files can contain more than one frame (for
+DICOM, FITS, FLI/FLC, TIFF, SER, Cine, DDS, Lytro and MNG files can contain more than one frame (for
 example, an ultrasound cine loop, the planes of an astronomical image cube, an animation,
 the pages of a fax, a planetary or high-speed video, the faces of a cube map, or the focal
 planes of a refocusable picture).
 `ImageData.Load` returns the first frame (or, for a refocusable Lytro picture, the one
 focused at its default depth); to get at the others, use `DicomReader`,
-`FitsReader`, `FliReader`, `TiffReader`, `SerReader`, `CineReader`, `DdsReader` or
-`LfpReader` directly:
+`FitsReader`, `FliReader`, `TiffReader`, `SerReader`, `CineReader`, `DdsReader`, `LfpReader` or
+`MngReader` directly:
 
 ```csharp
 int count = DicomReader.GetFrameCount("series.dcm");
@@ -97,6 +99,12 @@ instead. To make that choice yourself, use `PsdReader` directly:
 ```csharp
 ImageData image = PsdReader.Load("picture.psd", PsdImageSource.Layers);
 ```
+
+For camera raw files, `ImageData.Load` returns the largest of the JPEG previews that the
+camera embedded in the file (often full size), rotated the way the picture was taken. A raw
+file that's also a TIFF file, but has no JPEG preview, is read as a TIFF file instead, which
+usually gives a small uncompressed thumbnail. `RawReader.Load` reads the preview of any raw
+file directly.
 
 Occasionally a source format stores its pixel data as an embedded image in some other
 well-known encoding that the library can't decode itself (for example, a DICOM file

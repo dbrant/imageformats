@@ -139,6 +139,39 @@ namespace DmitryBrant.ImageFormats
         }
 
         /// <summary>
+        /// Decodes an ordinary JPEG image (8 bits per sample, gray or color) into pixels. If it
+        /// is some other kind, or one we can't decode, it is passed through encoded instead,
+        /// for the caller to decode.
+        /// </summary>
+        public static ImageData DecodeToImage(byte[] data)
+        {
+            CodecImage image;
+            try
+            {
+                image = Decode(data);
+            }
+            catch (ImageDecodeException)
+            {
+                return ImageData.FromEncoded(0, 0, data, "jpeg")!;
+            }
+            if (image.Precision != 8 || (image.Components != 1 && image.Components != 3))
+                return ImageData.FromEncoded(image.Width, image.Height, data, "jpeg")!;
+
+            // Samples are either gray, or red, green and blue.
+            var s = image.Samples;
+            int n = image.Components;
+            var bmp = new byte[image.Width * image.Height * 4];
+            for (int i = 0, p = 0; p < bmp.Length; i += n, p += 4)
+            {
+                bmp[p] = (byte)s[i + n - 1];
+                bmp[p + 1] = (byte)s[i + n / 2];
+                bmp[p + 2] = (byte)s[i];
+                bmp[p + 3] = 0xFF;
+            }
+            return new ImageData(image.Width, image.Height, bmp);
+        }
+
+        /// <summary>
         /// Combines a stream that holds only tables (an "abbreviated" JPEG stream of DQT and
         /// DHT segments, as TIFF and FlashPix store separately) with image data that omits
         /// them, by dropping the end marker of one and the start marker of the other.

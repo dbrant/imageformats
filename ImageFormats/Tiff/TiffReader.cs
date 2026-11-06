@@ -84,6 +84,15 @@ namespace DmitryBrant.ImageFormats
         }
 
         /// <summary>
+        /// Reads the first page of a TIFF image that has already been read into memory.
+        /// </summary>
+        internal static ImageData Load(byte[] data)
+        {
+            var file = Guard(() => new TiffFile(data));
+            return Guard(() => new TiffPage(file, file.Directories[0]).Decode());
+        }
+
+        /// <summary>
         /// Gets the number of pages in a TIFF file.
         /// </summary>
         /// <param name="fileName">Name of the file to read.</param>

@@ -860,7 +860,7 @@ namespace DmitryBrant.ImageFormats
         /// Applies the Orientation field, which says where the first row and column of the
         /// stored image belong.
         /// </summary>
-        private static ImageData Reorient(ImageData image, int orientation)
+        internal static ImageData Reorient(ImageData image, int orientation)
         {
             if (orientation <= 1 || orientation > 8)
                 return image;

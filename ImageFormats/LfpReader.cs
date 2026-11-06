@@ -446,31 +446,7 @@ namespace DmitryBrant.ImageFormats
             {
                 if (data.Length < 2 || data[0] != 0xFF || data[1] != 0xD8)
                     throw new ImageDecodeException("Unsupported LFP image format.");
-                CodecImage image;
-                try
-                {
-                    image = JpegDecoder.Decode(data);
-                }
-                catch (ImageDecodeException)
-                {
-                    // A flavor of JPEG we can't decode; let the caller do it.
-                    return ImageData.FromEncoded(0, 0, data, "jpeg")!;
-                }
-                if (image.Precision != 8 || (image.Components != 1 && image.Components != 3))
-                    return ImageData.FromEncoded(image.Width, image.Height, data, "jpeg")!;
-
-                // Samples are either gray, or red, green and blue.
-                var s = image.Samples;
-                int n = image.Components;
-                var bmp = new byte[image.Width * image.Height * 4];
-                for (int i = 0, p = 0; p < bmp.Length; i += n, p += 4)
-                {
-                    bmp[p] = (byte)s[i + n - 1];
-                    bmp[p + 1] = (byte)s[i + n / 2];
-                    bmp[p + 2] = (byte)s[i];
-                    bmp[p + 3] = 0xFF;
-                }
-                return new ImageData(image.Width, image.Height, bmp);
+                return JpegDecoder.DecodeToImage(data);
             }
 
             private byte[] ReadSection(string name)

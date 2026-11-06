@@ -17,6 +17,10 @@ values themselves (if they fit in 4 bytes) or their offset.
 BigTIFF is the same, except that the number is 43, offsets and counts are 64 bits,
 entries are 20 bytes, and values of up to 8 bytes are stored inline.
 
+Other formats (camera raw files in particular) embed TIFF structures of their own, whose
+offsets are relative to wherever that structure starts (its "origin"), and some of them
+use a number other than 42 in the header.
+
 Copyright 2026+ Dmitry Brant
 https://dmitrybrant.com
 
@@ -32,26 +36,45 @@ namespace DmitryBrant.ImageFormats
         public readonly byte[] Data;
         public readonly bool BigEndian;
         public readonly bool BigTiff;
+
+        /// <summary>Position in <see cref="Data"/> that the offsets in this structure are relative to.</summary>
+        public readonly long Origin;
+
         public readonly List<TiffDirectory> Directories = new();
 
-        public TiffFile(byte[] data)
+        public TiffFile(byte[] data) : this(data, 0, false)
+        {
+        }
+
+        /// <summary>
+        /// Parses the TIFF structure that starts at the given position in the data.
+        /// </summary>
+        /// <param name="data">The data that contains the structure.</param>
+        /// <param name="origin">Position of the header, which all offsets are relative to.</param>
+        /// <param name="anyMagic">Whether to accept any number in the header in place of 42, as
+        /// some camera raw formats require.</param>
+        public TiffFile(byte[] data, long origin, bool anyMagic)
         {
             Data = data;
-            if (data.Length < 8 || !TiffReader.HasSignature(data))
+            Origin = origin;
+            if (origin < 0 || data.Length - origin < 8 || data[origin] != data[origin + 1] || (data[origin] != 'I' && data[origin] != 'M'))
                 throw new ImageDecodeException("This is not a valid TIFF file.");
-            BigEndian = data[0] == 'M';
-            BigTiff = ReadU16(2) == 43;
+            BigEndian = data[origin] == 'M';
+            int magic = ReadU16(origin + 2);
+            if (magic != 42 && magic != 43 && !anyMagic)
+                throw new ImageDecodeException("This is not a valid TIFF file.");
+            BigTiff = magic == 43;
 
             long offset;
             if (BigTiff)
             {
-                if (data.Length < 16 || ReadU16(4) != 8)
+                if (data.Length - origin < 16 || ReadU16(origin + 4) != 8)
                     throw new ImageDecodeException("Unsupported BigTIFF offset size.");
-                offset = (long)ReadU64(8);
+                offset = (long)ReadU64(origin + 8);
             }
             else
             {
-                offset = ReadU32(4);
+                offset = ReadU32(origin + 4);
             }
 
             var visited = new HashSet<long>();
@@ -64,6 +87,23 @@ namespace DmitryBrant.ImageFormats
             }
             if (Directories.Count == 0)
                 throw new ImageDecodeException("TIFF file contains no images.");
+        }
+
+        private TiffFile(byte[] data, long origin, bool bigEndian, bool bigTiff)
+        {
+            Data = data;
+            Origin = origin;
+            BigEndian = bigEndian;
+            BigTiff = bigTiff;
+        }
+
+        /// <summary>
+        /// Makes a classic TIFF structure with no header of its own, for reading directories
+        /// that are embedded in other data (such as the maker notes of a camera).
+        /// </summary>
+        public static TiffFile View(byte[] data, long origin, bool bigEndian)
+        {
+            return new TiffFile(data, origin, bigEndian, false);
         }
 
         public int ReadU16(long pos) => BigEndian ? BinaryPrimitives.ReadUInt16BigEndian(Data.AsSpan((int)pos)) : BinaryPrimitives.ReadUInt16LittleEndian(Data.AsSpan((int)pos));
@@ -122,7 +162,8 @@ namespace DmitryBrant.ImageFormats
         };
 
         /// <summary>
-        /// Reads the IFD at the given offset, or returns null if it is out of bounds.
+        /// Reads the IFD at the given offset (relative to the origin of the file), or returns
+        /// null if it is out of bounds.
         /// </summary>
         public static TiffDirectory? Read(TiffFile file, long offset, out long nextOffset)
         {
@@ -131,8 +172,9 @@ namespace DmitryBrant.ImageFormats
             int entrySize = file.BigTiff ? 20 : 12;
             int inlineSize = file.BigTiff ? 8 : 4;
             long length = file.Data.Length;
-            if (offset < 0 || offset > length - countSize)
+            if (offset < 0 || offset > length - file.Origin - countSize)
                 return null;
+            offset += file.Origin;
 
             long count = file.BigTiff ? (long)Math.Min(file.ReadU64(offset), long.MaxValue) : file.ReadU16(offset);
             long pos = offset + countSize;
@@ -149,7 +191,7 @@ namespace DmitryBrant.ImageFormats
                 if (size == 0)
                     continue;
                 long valueOffset = n * size <= inlineSize ? valuePos
-                    : file.BigTiff ? (long)Math.Min(file.ReadU64(valuePos), long.MaxValue) : file.ReadU32(valuePos);
+                    : file.Origin + (file.BigTiff ? (long)Math.Min(file.ReadU64(valuePos), (ulong)(long.MaxValue - file.Origin)) : file.ReadU32(valuePos));
                 if (n > (length - Math.Min(valueOffset, length)) / size)
                     continue;
                 dir.entries.TryAdd(tag, new Entry(type, n, valueOffset));
@@ -161,6 +203,28 @@ namespace DmitryBrant.ImageFormats
         }
 
         public bool Has(int tag) => entries.ContainsKey(tag);
+
+        /// <summary>The tags of all the fields in this directory.</summary>
+        public IEnumerable<int> Tags => entries.Keys;
+
+        /// <summary>The type of a field's values, or 0 if it is missing.</summary>
+        public int GetFieldType(int tag) => entries.TryGetValue(tag, out var e) ? e.Type : 0;
+
+        /// <summary>
+        /// Gets the position of a field's values in the file data, and their total size in
+        /// bytes. Returns false if the field is missing.
+        /// </summary>
+        public bool TryGetData(int tag, out long offset, out long length)
+        {
+            if (!entries.TryGetValue(tag, out var e))
+            {
+                offset = length = 0;
+                return false;
+            }
+            offset = e.Offset;
+            length = e.Count * TypeSize(e.Type);
+            return true;
+        }
 
         /// <summary>
         /// Gets the first value of an integer field, or the given default if it is missing.

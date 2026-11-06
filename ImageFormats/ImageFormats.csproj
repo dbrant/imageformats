@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <PackageId>DmitryBrant.ImageFormats</PackageId>
-    <Version>1.6.4</Version>
+    <Version>1.6.5</Version>
     <Title>ImageFormats</Title>
     <Authors>Dmitry Brant</Authors>
     <Copyright>Copyright © Dmitry Brant, 2021+</Copyright>
@@ -20,7 +20,7 @@
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>    
-    <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;jpeg2000;jp2;j2k;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel;awd;fax;ccitt;psd;psb;pdd;photoshop;photodeluxe;adobe;fli;flc;flic;autodesk;animator;fpx;flashpix;kodak;ppp;pageplus;serif;tiff;tif;bigtiff;ser;lucam;astrophotography;cine;cin;phantom;high-speed;dds;directdraw;directx;texture;dxt;bc7;lytro;lfp;lfr;light-field</PackageTags>    
+    <PackageTags>decoding;graphics;images;library;targa;tga;ras;sun;zsoft;pcx;netpbm;ppm;pgm;pbm;pnm;sgi;dicom;jpeg2000;jp2;j2k;art;aol;johnson-grace;psp;pspimage;paint-shop-pro;jasc;corel;awd;fax;ccitt;psd;psb;pdd;photoshop;photodeluxe;adobe;fli;flc;flic;autodesk;animator;fpx;flashpix;kodak;ppp;pageplus;serif;tiff;tif;bigtiff;ser;lucam;astrophotography;cine;cin;phantom;high-speed;dds;directdraw;directx;texture;dxt;bc7;lytro;lfp;lfr;light-field;mng;jng;raw;camera-raw;cr2;cr3;crw;nef;nrw;arw;sr2;srf;pef;orf;rw2;raf;dng;srw;kdc;mrw;mos;x3f</PackageTags>    
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>    
     <Nullable>enable</Nullable>   
   </PropertyGroup>
